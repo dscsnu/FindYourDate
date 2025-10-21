@@ -1,12 +1,12 @@
-from sqlalchemy import Column, Integer, JSON, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from .base import Base
+
 
 class Embedding(Base):
     __tablename__ = "embeddings"
 
     id = Column(Integer, primary_key=True)
-    vector = Column(JSON, nullable=False)
     model_name = Column(String, default="text-embedding-3-large")
     user_id = Column(Integer, ForeignKey("users.id"))
 
