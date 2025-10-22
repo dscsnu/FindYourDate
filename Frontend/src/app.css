@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/* CSS Variables */
+:root {
+	--primary-color: #b477f2;
+}
+
+/* Global background styling */
+html, body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	background-attachment: fixed;
+	min-height: 100vh;
+}
