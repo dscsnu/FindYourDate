@@ -9,3 +9,12 @@ def store_embedding(vector, user_id):
         collection_name="find_my_date",
         points=[PointStruct(id=user_id, vector=vector.tolist())],
     )
+
+def get_embedding(user_id):
+    result = qdrant.retrieve(
+        collection_name="find_my_date",
+        ids=[user_id],
+    )
+    if result:
+        return result[0].vector
+    return None
