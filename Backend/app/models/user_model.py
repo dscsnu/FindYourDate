@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.orm import relationship
 from .base import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -13,7 +14,6 @@ class User(Base):
     accept_non_straight = Column(Boolean, default=True)
     preferences = Column(JSON, default=list)
 
-    embedding = relationship("Embedding", back_populates="user", uselist=False)
     matches = relationship("MatchHistory", back_populates="user")
 
     def __repr__(self):

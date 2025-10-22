@@ -14,12 +14,9 @@ SessionLocal = sessionmaker(bind=engine)
 qdrant = QdrantClient(host="localhost", port=6333)
 
 
-# vectors is a dictionary of vectors with the key being the vector ID and value being a 1D nparray of the vector
-def store_embeddings(vectors, user_id):
+# vectors is a 1D nparray
+def store_embedding(vector, user_id):
     qdrant.upsert(
         collection_name="find_my_date",
-        points=[
-            PointStruct(id=idx, vector=vector.tolist(), payload={"user_id": user_id})
-            for idx, vector in vectors.items()
-        ],
+        points=[PointStruct(id=user_id, vector=vector.tolist())],
     )
