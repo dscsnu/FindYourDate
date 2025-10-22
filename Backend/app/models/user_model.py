@@ -14,7 +14,8 @@ class User(Base):
     orientation = Column(String, nullable=False)
     accept_non_straight = Column(Boolean, default=True)
     preferences = Column(JSON, default=list)
-
+    chat_session = relationship("ChatSession", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    
     matches = relationship("MatchHistory", back_populates="user")
 
     def __repr__(self):
