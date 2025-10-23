@@ -9,6 +9,6 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
+<div class="min-h-screen bg-gradient-to-br from-purple-100 via-white to-purple-100">
 	{@render children?.()}
 </div>
