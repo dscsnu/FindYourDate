@@ -20,9 +20,9 @@
 		<!-- Text and Button Section -->
 		<div class="text-center lg:text-left flex flex-col items-center lg:items-start">
 			<p class="text-lg md:text-xl font-semibold mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-				Here, you welcome the user with a friendly message that
-				how desperate they have to be to use an ai model 
-				to find a date
+				Find your ideal prom date! 
+				Tell us who you are, 
+				and let our AI match you with your perfect vibe.
 			</p>
 			<button onclick={signInWithGoogle} 
 				class="flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-full text-gray-700 font-medium text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"

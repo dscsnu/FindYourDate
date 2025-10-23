@@ -1,8 +1,9 @@
 <script>
 	let messages = [
-		{ id: 1, text: "Hi! How are you?", sender: "ai", timestamp: "10:30 AM" },
-		{ id: 2, text: "I'm doing great! Thanks for asking.", sender: "user", timestamp: "10:31 AM" },
-		{ id: 3, text: "What would you like to talk about today?", sender: "ai", timestamp: "10:32 AM" }
+		{ id: 1, text: "Hi! How are you?", sender: "ai" },
+		{ id: 2, text: "I'm doing great! Thanks for asking.", sender: "user" },
+		{ id: 3, text: "What would you like to talk about today?", sender: "ai" },
+
 	];
 	
 	let newMessage = '';
@@ -10,14 +11,10 @@
 
 	function sendMessage() {
 		if (newMessage.trim()) {
-			const now = new Date();
-			const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-			
 			messages = [...messages, {
 				id: messageIdCounter++,
 				text: newMessage,
-				sender: 'user',
-				timestamp: timestamp
+				sender: 'user'
 			}];
 			
 			newMessage = '';
@@ -41,37 +38,29 @@
 	}
 </script>
 
-<div class="min-h-screen flex flex-col">
+<div class="chat-container">
 	<!-- Chat Header -->
-	<div class="bg-white border-b shadow-sm" style="border-bottom: 2px solid var(--primary-color);">
+	<div class="chat-header bg-white border-b shadow-sm" style="border-bottom: 1px solid var(--primary-color);">
 		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4">
 			<img 
-				src="/placeholderImage.png" 
+				src="/images/cupid.png" 
 				alt="AI Avatar" 
-				class="w-12 h-12 rounded-full object-cover"
+				class="w-12 h-12 object-cover"
 			/>
 			<div>
 				<h2 class="text-xl font-bold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-					Whatever name we gonna give
+					Snupid
 				</h2>
 			</div>
 		</div>
 	</div>
 
 	<!-- Chat Messages Container -->
-	<div class="flex-1 overflow-y-auto chat-messages px-4 py-6" style="background: linear-gradient(to bottom, #faf5ff, #f3e8ff);">
+	<div class="chat-messages px-4 py-6" style="background: linear-gradient(to bottom, #faf5ff, #f3e8ff);">
 		<div class="max-w-5xl mx-auto space-y-4">
 			{#each messages as message (message.id)}
 				<div class="flex {message.sender === 'user' ? 'justify-end' : 'justify-start'}">
 					<div class="flex items-end gap-2 max-w-[70%] {message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}">
-						<!-- Avatar -->
-						{#if message.sender === 'ai'}
-							<img 
-								src="/placeholderImage.png" 
-								alt="AI" 
-								class="w-8 h-8 rounded-full object-cover shrink-0"
-							/>
-						{/if}
 						
 						<!-- Message Bubble -->
 						<div class="flex flex-col {message.sender === 'user' ? 'items-end' : 'items-start'}">
@@ -83,9 +72,6 @@
 							>
 								<p class="text-sm md:text-base">{message.text}</p>
 							</div>
-							<span class="text-xs mt-1 px-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								{message.timestamp}
-							</span>
 						</div>
 					</div>
 				</div>
@@ -94,9 +80,9 @@
 	</div>
 
 	<!-- Message Input Area -->
-	<div class="bg-white border-t shadow-lg" style="border-top: 1px solid var(--primary-color);">
+	<div class="chat-input bg-white border-t shadow-lg" style="border-top: 1px solid var(--primary-color);">
 		<div class="max-w-5xl mx-auto px-4 py-4">
-			<form on:submit|preventDefault={sendMessage} class="flex items-end gap-3">
+			<form on:submit|preventDefault={sendMessage} class="flex items-center gap-3">
 				<div class="flex-1">
 					<textarea
 						bind:value={newMessage}
@@ -122,7 +108,20 @@
 </div>
 
 <style>
+	.chat-container {
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.chat-header {
+		flex-shrink: 0;
+	}
+
 	.chat-messages {
+		flex: 1;
+		overflow-y: auto;
 		scrollbar-width: thin;
 		scrollbar-color: var(--primary-color) transparent;
 	}
@@ -138,6 +137,10 @@
 	.chat-messages::-webkit-scrollbar-thumb {
 		background-color: var(--primary-color);
 		border-radius: 3px;
+	}
+
+	.chat-input {
+		flex-shrink: 0;
 	}
 	
 	textarea {
