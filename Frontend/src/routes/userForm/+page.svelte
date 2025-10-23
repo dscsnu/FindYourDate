@@ -1,4 +1,6 @@
 <script>
+    import { goto } from "$app/navigation";
+
 	let formData = {
 		gender: '',
 		sexuality: '',
@@ -16,6 +18,7 @@
 			return;
 		}
 		console.log('Form submitted:', formData);
+    goto('/aiChatRoom');
 		// Handle form submission logic here
 	}
 </script>

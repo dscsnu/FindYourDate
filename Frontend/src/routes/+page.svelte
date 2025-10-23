@@ -19,7 +19,7 @@
 		
 		<!-- Text and Button Section -->
 		<div class="text-center lg:text-left flex flex-col items-center lg:items-start">
-			<p class="text-base mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+			<p class="text-lg md:text-xl font-semibold mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 				Here, you welcome the user with a friendly message that
 				how desperate they have to be to use an ai model 
 				to find a date
