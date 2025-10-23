@@ -10,12 +10,9 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     gender = Column(String, nullable=False)  # male, female, non-binary
     orientation = Column(String, nullable=False)  # straight, gay, bi, etc.
-    accept_non_straight = Column(Boolean, default=True)
     preferences = Column(JSON, default=list)  # ex. ["male", "female"]
-    embedding_id = Column(Integer, ForeignKey("embeddings.id"), nullable=True)
     accept_non_straight = Column(Boolean, default=True)  # whether user is open to bi or non-straight matches
 
-    embedding = relationship("Embedding", back_populates="user")
     matches = relationship("MatchHistory", back_populates="user")
 
     def __repr__(self):
