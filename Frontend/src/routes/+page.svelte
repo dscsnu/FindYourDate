@@ -11,7 +11,7 @@
 		<!-- Image Section -->
 		<div class="shrink-0">
 			<img 
-				src="/placeholderImage.png" 
+				src="/images/logo.png" 
 				alt="Find Your Date placeholder" 
 				class="max-w-md w-full h-auto rounded-lg"
 			/>
@@ -19,6 +19,11 @@
 		
 		<!-- Text and Button Section -->
 		<div class="text-center lg:text-left flex flex-col items-center lg:items-start">
+			<p class="text-base mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+				Here, you welcome the user with a friendly message that
+				how desperate they have to be to use an ai model 
+				to find a date
+			</p>
 			<button onclick={signInWithGoogle} 
 				class="flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-full text-gray-700 font-medium text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
 				style="font-family: 'Montserrat', sans-serif;"
@@ -31,9 +36,12 @@
 				</svg>
 				Sign in with Google
 			</button>
-			<p class="mt-3 text-sm font-medium" style="color: var(--primary-color); font-family: 'Montserrat', sans-serif;">
-				Sign in with your SNU mail ID
-			</p>
+			<div class="ml-2 mt-3 flex items-center gap-2">
+				<img src="/icons/information-icon.png" alt="Info" class="w-4 h-4" />
+				<p class="text-sm font-medium" style="color: var(--primary-color); font-family: 'Montserrat', sans-serif;">
+					Sign in with your SNU mail ID
+				</p>
+			</div>
 		</div>
 	</div>
 </div>
