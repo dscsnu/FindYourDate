@@ -9,6 +9,15 @@
 	let newMessage = '';
 	let messageIdCounter = 4;
 
+	function scrollToBottom() {
+		setTimeout(() => {
+			const chatContainer = document.querySelector('.chat-messages');
+			if (chatContainer) {
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+			}
+		}, 10);
+	}
+
 	function sendMessage() {
 		if (newMessage.trim()) {
 			messages = [...messages, {
@@ -18,14 +27,19 @@
 			}];
 			
 			newMessage = '';
-			
-			// Scroll to bottom after sending message
-			setTimeout(() => {
-				const chatContainer = document.querySelector('.chat-messages');
-				if (chatContainer) {
-					chatContainer.scrollTop = chatContainer.scrollHeight;
-				}
-			}, 10);
+			scrollToBottom();
+		}
+	}
+
+	// @ts-ignore
+	function sendAIMessage(text) {
+		if (text && text.trim()) {
+			messages = [...messages, {
+				id: messageIdCounter++,
+				text: text.trim(),
+				sender: 'ai'
+			}];
+			scrollToBottom();
 		}
 	}
 
@@ -36,6 +50,7 @@
 			sendMessage();
 		}
 	}
+
 </script>
 
 <div class="chat-container">
@@ -93,6 +108,7 @@
 						style="border: 1px solid var(--primary-color); font-family: 'Nunito', sans-serif; max-height: 120px;"
 					></textarea>
 				</div>
+				<!-- svelte-ignore a11y_consider_explicit_label -->
 				<button
 					type="submit"
 					class="px-6 py-3 rounded-full text-white font-medium hover:opacity-90 transition-all duration-200 shrink-0"
