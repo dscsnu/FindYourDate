@@ -8,13 +8,17 @@
 		agePreference: '',
 		age: 21
 	};
-
-	// You can replace this with actual username from authentication
-	let username = "Gopal !";
 	
 	// Current step tracker
 	let currentStep = 0;
 	const totalSteps = 5; // Updated to 5 steps
+	
+	// Form animation state
+	let showIntro = true;
+	let animateForm = false;
+	let showOutro = false;
+	let animateFormDown = false;
+	let showForm = true;
 
 	function nextStep() {
 		if (currentStep < totalSteps - 1) {
@@ -87,13 +91,66 @@
 	function handleSubmit() {
 		if (validateCurrentStep()) {
 			console.log('Form submitted:', formData);
-			goto('/aiChatRoom');
+			// Animate form down
+			animateFormDown = true;
+			setTimeout(() => {
+				showForm = false;
+				showOutro = true;
+			}, 800); // Show outro after animation completes
 		}
+	}
+
+	function startForm() {
+		animateForm = true;
+		setTimeout(() => {
+			showIntro = false;
+		}, 800); // Hide intro after animation completes
+	}
+
+	function beginChat() {
+		goto('/aiChatRoom');
 	}
 </script>
 
 <div class="min-h-screen flex flex-col" style="background-color: var(--primary-color);">
+	<!-- Intro Screen -->
+	{#if showIntro}
+		<div class="flex-1 flex items-center justify-center px-4">
+			<div class="text-center space-y-8 max-w-2xl">
+				<h1 class="text-3xl md:text-4xl font-bold text-white" style="font-family: 'Nunito', sans-serif;">
+					Answer a few quick questions to help us understand your preferences better.
+				</h1>
+				<button
+					on:click={startForm}
+					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
+					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
+				>
+					Start 'em
+				</button>
+			</div>
+		</div>
+	{/if}
+
+	<!-- Outro Screen -->
+	{#if showOutro}
+		<div class="flex-1 flex items-center justify-center px-4">
+			<div class="text-center space-y-8 max-w-2xl">
+				<h1 class="text-3xl md:text-4xl font-bold text-white" style="font-family: 'Nunito', sans-serif;">
+					Now chat with our AI for a few minutes—it'll learn your interests and vibe to find your most compatible prom match!
+				</h1>
+				<button
+					on:click={beginChat}
+					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
+					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
+				>
+					Begin!
+				</button>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Progress Indicator - Fixed at top -->
+	{#if !showIntro && showForm}
 	<div class="py-6">
 		<div class="flex justify-center gap-3">
 			{#each Array(totalSteps) as _, i}
@@ -106,11 +163,13 @@
 			{/each}
 		</div>
 	</div>
+	{/if}
 
 	<!-- Content Container - Form -->
+	{#if !showIntro && showForm}
 	<div class="flex-1 flex items-end lg:items-center justify-center">
 		<!-- Form Section -->
-		<div class="w-full lg:max-w-2xl bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl">
+		<div class="w-full lg:max-w-2xl bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl form-container" class:animate-slide-up={animateForm} class:animate-slide-down={animateFormDown}>
 			<div class="p-10">
 			<div class="min-h-[400px] flex flex-col">
 			<!-- Step 0: Gender -->
@@ -424,7 +483,9 @@
 			</div>
 		</div>
 	</div>
-</div>
+		</div>
+	</div>
+	{/if}
 
 <style>
 	@media (min-width: 700px) {
@@ -487,6 +548,40 @@
 		border-radius: 5px;
 		background: #e5e7eb;
 	}
+
+	.form-container {
+		transform: translateY(100vh);
+		opacity: 0;
+	}
+
+	.animate-slide-up {
+		animation: slideUp 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+	}
+
+	@keyframes slideUp {
+		0% {
+			transform: translateY(100vh);
+			opacity: 0;
+		}
+		100% {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+
+	.animate-slide-down {
+		animation: slideDown 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+	}
+
+	@keyframes slideDown {
+		0% {
+			transform: translateY(0);
+			opacity: 1;
+		}
+		100% {
+			transform: translateY(100vh);
+			opacity: 0;
+		}
+	}
 </style>
-	</div>
 </div>
