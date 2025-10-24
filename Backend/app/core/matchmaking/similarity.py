@@ -9,15 +9,30 @@ def cosine_similarity(vec1, vec2):
 def valid_partner(a, b):
     if a.id == b.id:
         return False
+
     if a.orientation == "straight":
         if a.gender == "M":
-            return b.gender == "W" and (b.orientation in ["straight", "bi"])
-        else:
-            return b.gender == "M" and (b.orientation in ["straight", "bi"])
+            if b.gender == "W":
+                if b.orientation == "bi":
+                    return a.accepts_bi
+                elif b.orientation == "straight":
+                    return True
+                return False
+                
+        elif a.gender == "W":   
+            if b.gender == "M":
+                if b.orientation == "bi":
+                    return a.accepts_bi
+                elif b.orientation == "straight":
+                    return True
+                return False
+
     if a.orientation == "gay":
         return a.gender == b.gender and b.orientation in ["gay", "bi"]
+
     if a.orientation == "lesbian":
         return a.gender == b.gender and b.orientation in ["lesbian", "bi"]
+
     if a.orientation == "bi":
         if b.orientation == "straight":
             if b.gender == "M" and a.gender == "W" and b.accepts_bi:
@@ -29,4 +44,5 @@ def valid_partner(a, b):
         if b.orientation == "lesbian" and b.gender == "W" and a.gender == "M":
             return False
         return True
+
     return False
