@@ -126,7 +126,7 @@
 							on:click={() => formData.gender = 'male'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							class:selected-gender={formData.gender === 'male'}
-							style="border-color: {formData.gender === 'male' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'male' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.gender === 'male' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'male' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/male-icon.png" 
@@ -144,7 +144,7 @@
 							on:click={() => formData.gender = 'female'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							class:selected-gender={formData.gender === 'female'}
-							style="border-color: {formData.gender === 'female' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'female' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.gender === 'female' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'female' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/female-icon.png" 
@@ -171,7 +171,7 @@
 							type="button"
 							on:click={() => formData.sexuality = 'straight'}
 							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.sexuality === 'straight' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'straight' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.sexuality === 'straight' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'straight' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/straight-icon.png" 
@@ -189,7 +189,7 @@
 								type="button"
 								on:click={() => formData.sexuality = 'gay'}
 								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-								style="border-color: {formData.sexuality === 'gay' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'gay' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+								style="border-color: {formData.sexuality === 'gay' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'gay' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 							>
 								<img 
 									src="/icons/gay-icon.png" 
@@ -208,7 +208,7 @@
 								type="button"
 								on:click={() => formData.sexuality = 'lesbian'}
 								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-								style="border-color: {formData.sexuality === 'lesbian' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'lesbian' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+								style="border-color: {formData.sexuality === 'lesbian' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'lesbian' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 							>
 								<img 
 									src="/icons/lesbian-icon.png" 
@@ -226,7 +226,7 @@
 							type="button"
 							on:click={() => formData.sexuality = 'bisexual'}
 							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.sexuality === 'bisexual' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'bisexual' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.sexuality === 'bisexual' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'bisexual' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/bisexual-icon.png" 
@@ -253,7 +253,7 @@
 							type="button"
 							on:click={() => formData.comfortableWithNonStraight = true}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
-							style="border-color: {formData.comfortableWithNonStraight === true ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === true ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.comfortableWithNonStraight === true ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === true ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/thumbs-up-icon.png" 
@@ -270,7 +270,7 @@
 							type="button"
 							on:click={() => formData.comfortableWithNonStraight = false}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
-							style="border-color: {formData.comfortableWithNonStraight === false ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === false ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.comfortableWithNonStraight === false ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === false ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/thumbs-down-icon.png" 
@@ -297,7 +297,7 @@
 							type="button"
 							on:click={() => formData.agePreference = 'younger'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'younger' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'younger' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.agePreference === 'younger' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'younger' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/younger-icon.png" 
@@ -314,7 +314,7 @@
 							type="button"
 							on:click={() => formData.agePreference = 'older'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'older' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'older' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.agePreference === 'older' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'older' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/older-icon.png" 
@@ -331,7 +331,7 @@
 							type="button"
 							on:click={() => formData.agePreference = 'no-preference'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'no-preference' ? 'var(--primary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'no-preference' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+							style="border-color: {formData.agePreference === 'no-preference' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'no-preference' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
 							<img 
 								src="/icons/no-preference-icon.png" 
