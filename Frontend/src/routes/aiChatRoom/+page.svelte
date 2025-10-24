@@ -2,8 +2,7 @@
 	let messages = [
 		{ id: 1, text: "Hi! How are you?", sender: "ai" },
 		{ id: 2, text: "I'm doing great! Thanks for asking.", sender: "user" },
-		{ id: 3, text: "What would you like to talk about today?", sender: "ai" },
-
+		{ id: 3, text: "What would you like to talk about today?", sender: "ai" }
 	];
 	
 	let newMessage = '';

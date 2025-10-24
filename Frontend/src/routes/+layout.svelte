@@ -9,6 +9,6 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen bg-white">
+<div class="min-h-screen" style="background-color: var(--background-color);">
 	{@render children?.()}
 </div>

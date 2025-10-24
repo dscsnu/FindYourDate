@@ -19,7 +19,7 @@
 		
 		<!-- Text and Button Section -->
 		<div class="text-center lg:text-left flex flex-col items-center lg:items-start">
-			<p class="text-lg md:text-xl font-semibold mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+			<p class="text-lg md:text-xl font-bold mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 				Find your ideal prom date! 
 				Tell us who you are, 
 				and let our AI match you with your perfect vibe.
@@ -38,7 +38,7 @@
 			</button>
 			<div class="ml-2 mt-3 flex items-center gap-2">
 				<img src="/icons/information-icon.png" alt="Info" class="w-4 h-4" />
-				<p class="text-sm font-medium" style="color: var(--primary-color); font-family: 'Montserrat', sans-serif;">
+				<p class="text-sm font-semibold" style="color: white; font-family: 'Nunito', sans-serif;">
 					Sign in with your SNU mail ID
 				</p>
 			</div>
