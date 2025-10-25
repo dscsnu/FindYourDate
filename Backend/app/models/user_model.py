@@ -14,7 +14,8 @@ class User(Base):
     orientation = Column(String, nullable=False)
     accept_non_straight = Column(Boolean, default=True)
     agePreference = Column(Integer, nullable=True) # 1 for higher or same, 0 for no preference, -1 for lower or same
-    
+    age = Column(Integer, nullable=False)
+
     matches = relationship("MatchHistory", back_populates="user")
 
     def __repr__(self):
