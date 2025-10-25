@@ -1,13 +1,66 @@
 <script>
   import { goto } from "$app/navigation";
+	import { onMount } from 'svelte';
+
+	let hearts = $state([]);
+	let heartIdCounter = 0;
+	const MAX_HEARTS = 4;
 
 	function signInWithGoogle() {
 		goto('/userForm');
 	}
+
+	function createHeart() {
+		if (hearts.length >= MAX_HEARTS) return;
+
+		const heart = {
+			id: heartIdCounter++,
+			left: Math.random() * 100, // Random horizontal position (0-100%)
+			duration: 3 + Math.random() * 2, // Random duration between 3-5 seconds
+			delay: Math.random() * 1, // Random delay 0-1 second
+			size: 100 + Math.random() * 50, // Random size between 100-150px
+			rotation: (Math.random() * 90) - 45 // Random rotation between -45 to 45 degrees
+		};
+
+		hearts = [...hearts, heart];
+
+		// Remove heart after animation completes
+		setTimeout(() => {
+			hearts = hearts.filter(h => h.id !== heart.id);
+		}, (heart.duration + heart.delay) * 1000);
+	}
+
+	onMount(() => {
+		// Create initial hearts
+		const interval = setInterval(() => {
+			createHeart();
+		}, 1500); // Create a new heart every 1.5 seconds
+
+		return () => clearInterval(interval);
+	});
 </script>
 
 <div class="flex items-center justify-center min-h-screen px-4">
-	<div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 max-w-6xl w-full">
+	<!-- Floating Hearts Background -->
+	<div class="floating-hearts-container">
+		{#each hearts as heart (heart.id)}
+			<img 
+				src="/images/heart.png"
+				alt="heart"
+				class="floating-heart"
+				style="
+					left: {heart.left}%;
+					animation-duration: {heart.duration}s;
+					animation-delay: {heart.delay}s;
+					width: {heart.size}px;
+					height: {heart.size}px;
+					transform: rotate({heart.rotation}deg);
+				"
+			/>
+		{/each}
+	</div>
+
+	<div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 max-w-6xl w-full relative z-10">
 		<!-- Image Section -->
 		<div class="shrink-0">
 			<img 
@@ -45,3 +98,41 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.floating-hearts-container {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		overflow: hidden;
+		z-index: 0;
+	}
+
+	.floating-heart {
+		position: absolute;
+		bottom: -60px;
+		opacity: 0;
+		animation: floatUp linear forwards;
+		pointer-events: none;
+	}
+
+	@keyframes floatUp {
+		0% {
+			bottom: -60px;
+			opacity: 0;
+		}
+		10% {
+			opacity: 0.8;
+		}
+		90% {
+			opacity: 0.8;
+		}
+		100% {
+			bottom: 110vh;
+			opacity: 0;
+		}
+	}
+</style>

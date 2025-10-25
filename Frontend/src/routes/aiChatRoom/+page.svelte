@@ -9,15 +9,6 @@
 	let messageIdCounter = 4;
 	let isTyping = false;
 
-	function scrollToBottom() {
-		setTimeout(() => {
-			const chatContainer = document.querySelector('.chat-messages');
-			if (chatContainer) {
-				chatContainer.scrollTop = chatContainer.scrollHeight;
-			}
-		}, 10);
-	}
-
 	function sendMessage() {
 		if (newMessage.trim()) {
 			messages = [...messages, {
@@ -27,7 +18,6 @@
 			}];
 			
 			newMessage = '';
-			scrollToBottom();
 		}
 	}
 
@@ -39,7 +29,6 @@
 				text: text.trim(),
 				sender: 'ai'
 			}];
-			scrollToBottom();
 		}
 	}
 
@@ -53,7 +42,6 @@
 
 	function showTypingIndicator() {
 		isTyping = true;
-		scrollToBottom();
 	}
 
 	function hideTypingIndicator() {

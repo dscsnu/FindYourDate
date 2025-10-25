@@ -6,12 +6,14 @@
 		sexuality: '',
 		comfortableWithNonStraight: null,
 		agePreference: '',
-		age: 21
+		age: 21,
+		mobileNumber: '',
+		consentToShare: false
 	};
 	
 	// Current step tracker
 	let currentStep = 0;
-	const totalSteps = 5; // Updated to 5 steps
+	const totalSteps = 6; // Updated to 6 steps
 	
 	// Form animation state
 	let showIntro = true;
@@ -80,6 +82,20 @@
 				}
 				if (parseInt(formData.age) < 17 || parseInt(formData.age) > 25) {
 					alert('Please select an age between 17 and 25');
+					return false;
+				}
+				return true;
+			case 5:
+				if (!formData.mobileNumber) {
+					alert('Please enter your mobile number');
+					return false;
+				}
+				if (!/^\d{10}$/.test(formData.mobileNumber)) {
+					alert('Please enter a valid 10-digit mobile number');
+					return false;
+				}
+				if (!formData.consentToShare) {
+					alert('Please consent to share your number with your potential prom partner');
 					return false;
 				}
 				return true;
@@ -167,7 +183,15 @@
 
 	<!-- Content Container - Form -->
 	{#if !showIntro && showForm}
-	<div class="flex-1 flex items-end lg:items-center justify-center">
+	<div class="flex-1 flex flex-col items-end lg:items-center justify-end lg:justify-center">
+		<!-- Mobile Placeholder Image - Only visible on mobile, above the card -->
+		<div class="lg:hidden w-full flex-1 flex items-center justify-center px-4 pb-4">
+			<img 
+				src="/images/logo.png" 
+				alt="Placeholder" 
+				class="h-full max-h-64 w-auto object-contain"
+			/>
+		</div>
 		
 		<!-- Form Section -->
 		<div class="w-full lg:max-w-2xl bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl form-container" class:animate-slide-up={animateForm} class:animate-slide-down={animateFormDown}>
@@ -434,6 +458,49 @@
 									</span>
 								</div>
 							</div>
+						</div>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Step 5: Mobile Number -->
+			{#if currentStep === 5}
+				<div class="space-y-6 flex-1 flex flex-col justify-center">
+					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+						Please enter your mobile number so that your prom match can reach you?
+					</h2>
+					<div class="max-w-md mx-auto w-full space-y-4">
+						<input 
+							type="tel" 
+							bind:value={formData.mobileNumber}
+							placeholder="Enter 10-digit mobile number"
+							maxlength="10"
+							pattern="[0-9]{10}"
+							class="w-full px-6 py-4 text-lg rounded-2xl border-2 transition-all duration-200 focus:outline-none text-center font-semibold"
+							style="border-color: {formData.mobileNumber ? 'var(--secondary-color)' : '#e5e7eb'}; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
+							on:input={(e) => {
+								// Only allow digits
+								const target = e.target;
+								if (target && target instanceof HTMLInputElement) {
+									formData.mobileNumber = target.value.replace(/\D/g, '');
+								}
+							}}
+						/>
+						<div class="flex items-start gap-3 p-4 rounded-xl" style="background-color: rgba(236, 167, 186, 0.1);">
+							<input 
+								type="checkbox" 
+								id="consent"
+								bind:checked={formData.consentToShare}
+								class="mt-1 w-5 h-5 cursor-pointer"
+								style="accent-color: var(--secondary-color);"
+							/>
+							<label 
+								for="consent" 
+								class="text-base cursor-pointer select-none"
+								style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
+							>
+								Yes, I consent to share my number with my potential prom partner
+							</label>
 						</div>
 					</div>
 				</div>
