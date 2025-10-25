@@ -11,6 +11,7 @@ from typing import List, Dict
 import random
 from helpers import decompose_pools
 from similarity import cosine_similarity, valid_partner
+import numpy as np
 
 def load_people(db: Session) -> List[Person]:
     users = db.query(User).all()
