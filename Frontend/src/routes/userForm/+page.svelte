@@ -168,6 +168,7 @@
 	<!-- Content Container - Form -->
 	{#if !showIntro && showForm}
 	<div class="flex-1 flex items-end lg:items-center justify-center">
+		
 		<!-- Form Section -->
 		<div class="w-full lg:max-w-2xl bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl form-container" class:animate-slide-up={animateForm} class:animate-slide-down={animateFormDown}>
 			<div class="p-10">

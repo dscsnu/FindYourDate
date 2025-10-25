@@ -64,15 +64,13 @@
 // To hide it
 hideTypingIndicator();
 
-/*
-/ Example: Show typing, wait 5 seconds, then show AI message
+// Example: Show typing, wait 5 seconds, then show AI message
 showTypingIndicator();
 setTimeout(() => {
     hideTypingIndicator();
     sendAIMessage("Here's my response!");
 }, 5000);
 
-*/
 
 </script>
 
