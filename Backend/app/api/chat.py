@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional
 from app.core.llm_questionnaire import process_and_embed_chat, embed_full_chat, generate_next_question
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(tags=["chat"])
 
 
 class ChatMessage(BaseModel):

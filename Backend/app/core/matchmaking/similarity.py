@@ -2,10 +2,27 @@ from cosine_similarity_module import cosine_similarity
 
 cosine_similarity = cosine_similarity
 
+take_age_preference = False
 
 def valid_partner(a, b):
     if a.id == b.id:
         return False
+
+    if a.age < 18 or b.age < 18:
+        if b.age < 18 and a.age < 18:
+            pass
+        else:
+            return False
+
+    if take_age_preference:
+        if a.age_preference == 1 and b.age < a.age:
+            return False
+        if a.age_preference == -1 and b.age > a.age:
+            return False
+        if b.age_preference == 1 and a.age < b.age:
+            return False
+        if b.age_preference == -1 and a.age > b.age:
+            return False
 
     if a.orientation == "straight":
         if a.gender == "M":

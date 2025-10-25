@@ -19,9 +19,11 @@ def build_candidate_pairs(people):
                 continue
             if a not in pref_sets[b]:
                 continue
-            rank_a = a.preferences.index(b) + 1
-            rank_b = b.preferences.index(a) + 1
-            cost = rank_a + rank_b
+            # Use 1 - average similarity as cost
+            sim_a_to_b = a.similarity_scores.get(b, 0)
+            sim_b_to_a = b.similarity_scores.get(a, 0)
+            avg_sim = (sim_a_to_b + sim_b_to_a) / 2
+            cost = 1 - avg_sim
             entry = HeapEntry(cost, i, j, a, b)
             candidates.append(entry)
             heap.append((cost, i, j, a, b))
@@ -47,7 +49,7 @@ def hungarian(men, women):
         return []
     n = max(len(men), len(women))
     men_padded, women_padded = men + [None]*(n-len(men)), women + [None]*(n-len(women))
-    cost = np.full((n, n), LARGE_COST) #later change:- cost = 1 - compactability
+    cost = np.full((n, n), LARGE_COST)
     pref_sets_m = {p: set(p.preferences) for p in men}
     pref_sets_w = {p: set(p.preferences) for p in women}
     for i, m in enumerate(men_padded):
@@ -55,7 +57,8 @@ def hungarian(men, women):
             if not m or not w:
                 continue
             if w in pref_sets_m[m] and m in pref_sets_w[w]:
-                cost[i, j] = (m.preferences.index(w) + 1) + (w.preferences.index(m) + 1)
+                sim = m.similarity_scores.get(w, 0)
+                cost[i, j] = 1 - sim
     row_ind, col_ind = linear_sum_assignment(cost)
     return [
         (men_padded[i], women_padded[j], cost[i, j])
@@ -73,9 +76,9 @@ def min_weight_graph_matching(people):
         for j in range(i + 1, n):
             a, b = people[i], people[j]
             if b in a.preferences and a in b.preferences:
-                rank_sum = (a.preferences.index(b) + 1) + (b.preferences.index(a) + 1)
-                G.add_edge(i, j, weight=rank_sum)
+                sim = a.similarity_scores.get(b, 0)
+                weight = 1 - sim
+                G.add_edge(i, j, weight=weight)
     matching = nx.algorithms.matching.min_weight_matching(G, weight="weight")
-    return [(people[i], people[j], (people[i].preferences.index(people[j]) + 1)
-            + (people[j].preferences.index(people[i]) + 1))
+    return [(people[i], people[j], 1 - (people[i].similarity_scores.get(people[j], 0)))
             for i, j in matching if i < len(people) and j < len(people)]
