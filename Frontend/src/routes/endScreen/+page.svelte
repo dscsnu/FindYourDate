@@ -16,14 +16,6 @@
       loadAnimation();
     }
 
-    function playWaitingAnimation() {
-      currentAnimation = '/animations/heart-sleeping.riv';
-      currentText = "Check back later when we've found your match";
-      showDots = false;
-      showButton = false;
-      loadAnimation();
-    }
-
     function playMatchFoundAnimation() {
       currentAnimation = '/animations/heart-happy.riv';
       currentText = 'WE HAVE FOUND YOU A MATCH!';
@@ -72,9 +64,9 @@
     });
 </script>
 
-<div class="flex justify-center items-center w-screen h-screen overflow-hidden">
+<div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden">
   <div class="flex flex-col items-center justify-center gap-4">
-    <canvas bind:this={canvas} class="w-[500px] h-[500px] max-w-[80vw] max-h-[60vh] object-contain shrink-0"></canvas>
+    <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
     <div class="flex flex-col items-center gap-4 text-center px-4">
       {#if currentText}
         <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
