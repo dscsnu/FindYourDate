@@ -4,6 +4,5 @@ Backend/alembic/versions/3fe746b7e3a4_init_schema.py
 __pycache__/
 .vscode/
 
-pyproject.toml
 .python-version
 uv.lock
