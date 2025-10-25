@@ -13,7 +13,7 @@ class User(Base):
     gender = Column(String, nullable=False)
     orientation = Column(String, nullable=False)
     accept_non_straight = Column(Boolean, default=True)
-    preferences = Column(JSON, default=list)
+    agePreference = Column(Integer, nullable=True) # 1 for higher or same, 0 for no preference, -1 for lower or same
     
     matches = relationship("MatchHistory", back_populates="user")
 
