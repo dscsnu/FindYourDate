@@ -25,6 +25,7 @@ def assign_preferences(people: list):
                 continue
             sim = cosine_similarity(np.array(a.embedding), np.array(b.embedding))
             scored_partners.append((b, sim))
+            a.similarity_scores[b] = sim
 
         a.preferences = [b for b, _ in sorted(scored_partners, key=lambda x: x[1], reverse=True)]
 

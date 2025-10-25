@@ -8,6 +8,7 @@ class Person:
         self.orientation = user.orientation
         self.accepts_bi = user.accept_non_straight
         self.preferences = []
+        self.similarity_scores = {}  # Maps Person -> similarity score
         self.matched_to = None
 
     def __repr__(self):
