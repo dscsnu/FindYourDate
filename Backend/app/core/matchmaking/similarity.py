@@ -1,10 +1,7 @@
-from numpy.linalg import norm
-import numpy as np
+from cosine_similarity_module import cosine_similarity
 
-def cosine_similarity(vec1, vec2):
-    if norm(vec1) == 0 or norm(vec2) == 0:
-        return 0.0
-    return np.dot(vec1, vec2) / (norm(vec1) * norm(vec2))
+cosine_similarity = cosine_similarity
+
 
 def valid_partner(a, b):
     if a.id == b.id:
@@ -18,8 +15,8 @@ def valid_partner(a, b):
                 elif b.orientation == "straight":
                     return True
                 return False
-                
-        elif a.gender == "W":   
+
+        elif a.gender == "W":
             if b.gender == "M":
                 if b.orientation == "bi":
                     return a.accepts_bi
