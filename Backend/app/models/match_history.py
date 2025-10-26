@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, ForeignKey, Float, String, Enum
 from sqlalchemy.orm import relationship
-from .base import Base
+from app.db.database import Base
 import enum
 
 class MatchStatus(str, enum.Enum):

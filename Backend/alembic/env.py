@@ -11,7 +11,11 @@ from alembic import context
 # ensure project root is on sys.path so alembic can import the project's models
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.models.base import Base
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.db.database import Base
 from app.models.user_model import User
 from app.models.match_history import MatchHistory
 from app.models.match_score import MatchScore
@@ -21,8 +25,10 @@ from app.models.match_score import MatchScore
 config = context.config
 
 # Override sqlalchemy.url from environment variable if it exists
-if os.getenv("DATABASE_URL"):
-    config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+# Try DATABASE_URL first, then fall back to SUPABASE_DB_URL
+db_url = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL")
+if db_url:
+    config.set_main_option("sqlalchemy.url", db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -8,7 +8,7 @@ from typing import List, Dict
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def process_and_embed_chat(user_id: int, chat_history: List[Dict[str, str]]):
+def process_and_embed_chat(user_email: str, chat_history: List[Dict[str, str]]):
     if not chat_history or len(chat_history) == 0:
         return {"status": "error", "message": "Chat history is empty"}
     
@@ -38,17 +38,17 @@ def process_and_embed_chat(user_id: int, chat_history: List[Dict[str, str]]):
     else:
         return {"status": "error", "message": "No valid answers to embed"}
     
-    store_embedding(vector=final_vec, user_id=user_id)
+    store_embedding(vector=final_vec, user_email=user_email)
     
     return {
         "status": "success",
         "message": "Chat embedded and stored successfully",
-        "user_id": user_id,
+        "user_email": user_email,
         "answers_processed": len(personality_answers) + len(social_answers)
     }
 
 
-def embed_full_chat(user_id: int, full_chat_text: str):
+def embed_full_chat(user_email: str, full_chat_text: str):
     if not full_chat_text or len(full_chat_text.strip()) == 0:
         return {"status": "error", "message": "Chat text is empty"}
     
@@ -58,25 +58,25 @@ def embed_full_chat(user_id: int, full_chat_text: str):
         return {"status": "error", "message": "Failed to generate embedding"}
     
     final_vec = np.array(chat_vector)
-    store_embedding(vector=final_vec, user_id=user_id)
+    store_embedding(vector=final_vec, user_email=user_email)
     
     return {
         "status": "success",
         "message": "Chat embedded and stored successfully",
-        "user_id": user_id
+        "user_email": user_email
     }
 
 
-def generate_next_question(chat_history: List[Dict[str, str]], user_id: int = None) -> Dict:
+def generate_next_question(chat_history: List[Dict[str, str]], user_email: str = None) -> Dict:
     current_count = len(chat_history)
     
     # Determine if questionnaire is complete
     if current_count >= 10:
-        # Auto-embed if user_id provided
+        # Auto-embed if user_email provided
         embedding_result = None
-        if user_id:
+        if user_email:
             try:
-                embedding_result = process_and_embed_chat(user_id, chat_history)
+                embedding_result = process_and_embed_chat(user_email, chat_history)
             except Exception as e:
                 return {
                     "question": None,
@@ -99,7 +99,7 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_id: int = No
         if embedding_result:
             if embedding_result.get("status") == "success":
                 response["embedding_status"] = "success"
-                response["user_id"] = embedding_result.get("user_id")
+                response["user_email"] = embedding_result.get("user_email")
                 response["answers_processed"] = embedding_result.get("answers_processed")
             else:
                 response["embedding_status"] = "error"

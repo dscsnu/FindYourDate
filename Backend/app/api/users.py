@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -10,11 +10,20 @@ router = APIRouter(tags=["users"])
 
 # Dependency to get DB session
 def get_db():
+    if SessionLocal is None:
+        raise HTTPException(status_code=503, detail="Database is not available")
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+# Simple auth dependency - checks if Authorization header exists
+async def verify_auth(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return authorization.replace("Bearer ", "")
 
 
 class CreateUserRequest(BaseModel):
@@ -44,7 +53,24 @@ class UserResponse(BaseModel):
 
 
 @router.post("/", response_model=UserResponse, status_code=201)
-async def create_user(user_data: CreateUserRequest, db: Session = Depends(get_db)):
+async def create_user(
+    user_data: CreateUserRequest, 
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_auth)
+):
+    """
+    Create a new user. Requires authentication.
+    """
+    # Check if user with this email or phone already exists
+    existing_user = db.query(User).filter(
+        (User.email == user_data.email) | (User.phone == user_data.phone)
+    ).first()
+    
+    if existing_user:
+        if existing_user.email == user_data.email:
+            raise HTTPException(status_code=400, detail="User with this email already exists")
+        else:
+            raise HTTPException(status_code=400, detail="User with this phone number already exists")
    
     new_user = User(
         name=user_data.name,
@@ -54,7 +80,7 @@ async def create_user(user_data: CreateUserRequest, db: Session = Depends(get_db
         orientation=user_data.orientation.lower(),
         age=user_data.age,
         accept_non_straight=user_data.accept_non_straight,
-        agePreference=user_data.age_preference
+        age_preference=user_data.age_preference
     )
     
     try:

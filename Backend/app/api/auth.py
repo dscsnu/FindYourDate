@@ -1,7 +1,8 @@
 import os
 from supabase import create_client
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response, Cookie, Request
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -9,6 +10,7 @@ load_dotenv()
 
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 supabase = create_client(url, key)
 router = APIRouter(prefix='/auth', tags=["authentication"])
@@ -26,53 +28,27 @@ class SessionResponse(BaseModel):
     token_type: str
     user: dict
 
-## frontend needs to be managed if going with this
-# @router.post('/google', response_model=SessionResponse)
-# async def google_auth(auth_request: GoogleAuthRequest):
-#     """
-#     Authenticate user with Google ID token from frontend.
-#     Returns session data (access_token, refresh_token, user info) for frontend to store.
-#     """
-#     try:
-#         # Sign in with Google ID token
-#         response = supabase.auth.sign_in_with_id_token({
-#             "provider": "google",
-#             "token": auth_request.id_token
-#         })
-#
-#         if not response.session:
-#             raise HTTPException(status_code=401, detail="Authentication failed")
-#
-#         # Return session data for frontend to store
-#         return {
-#             "access_token": response.session.access_token,
-#             "refresh_token": response.session.refresh_token,
-#             "expires_in": response.session.expires_in,
-#             "expires_at": response.session.expires_at,
-#             "token_type": response.session.token_type,
-#             "user": {
-#                 "id": response.user.id,
-#                 "email": response.user.email,
-#                 "user_metadata": response.user.user_metadata,
-#                 "app_metadata": response.user.app_metadata,
-#                 "created_at": response.user.created_at
-#             }
-#         }
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=f"Authentication error: {str(e)}")
+
+class CallbackRequest(BaseModel):
+    code: str
 
 
-@router.get('/google/url')
-async def get_google_auth_url(redirect_to: Optional[str] = None):
+@router.get('/google/login')
+async def google_login(redirect_to: Optional[str] = None):
     """
-    Get Google OAuth URL for client-side redirect.
-    The frontend can redirect users to this URL to start the OAuth flow.
+    Initiates Google OAuth flow.
+    Returns the OAuth URL that the frontend should redirect to.
     """
     try:
+        callback_url = f"{os.environ.get('BACKEND_URL', 'http://localhost:8000')}/auth/google/callback"
+        
         response = supabase.auth.sign_in_with_oauth({
             "provider": "google",
             "options": {
-                "redirect_to": redirect_to or f"{os.environ.get('FRONTEND_URL', 'http://localhost:5173')}/auth/callback"
+                "redirect_to": callback_url,
+                "query_params": {
+                    "redirect_to": redirect_to or f"{frontend_url}/userForm"
+                }
             }
         })
 
@@ -83,33 +59,148 @@ async def get_google_auth_url(redirect_to: Optional[str] = None):
         raise HTTPException(status_code=400, detail=f"Failed to generate auth URL: {str(e)}")
 
 
-@router.post('/refresh')
-async def refresh_session(refresh_token: str):
+@router.get('/google/callback')
+async def google_callback(
+    response: Response,
+    code: Optional[str] = None,
+    error: Optional[str] = None,
+    redirect_to: Optional[str] = None
+):
     """
-    Refresh an expired session using refresh token.
+    Handles the OAuth callback from Google.
+    Exchanges the code for a session and stores tokens in httpOnly cookies.
+    Tokens are NEVER exposed to frontend JavaScript.
+    """
+    if error:
+        return RedirectResponse(url=f"{frontend_url}/?error={error}")
+    
+    if not code:
+        return RedirectResponse(url=f"{frontend_url}/?error=missing_code")
+    
+    try:
+        # Exchange code for session
+        auth_response = supabase.auth.exchange_code_for_session({
+            "auth_code": code
+        })
+        
+        if not auth_response.session:
+            return RedirectResponse(url=f"{frontend_url}/?error=auth_failed")
+        
+        # Create redirect response
+        redirect_url = f"{frontend_url}/auth/callback?success=true"
+        redirect_response = RedirectResponse(url=redirect_url)
+        
+        # Set httpOnly cookies (NOT accessible from JavaScript)
+        # This keeps tokens secure and prevents XSS attacks
+        redirect_response.set_cookie(
+            key="access_token",
+            value=auth_response.session.access_token,
+            httponly=True,  # Cannot be accessed by JavaScript
+            secure=False,   # Set to True in production with HTTPS
+            samesite="lax", # CSRF protection
+            max_age=auth_response.session.expires_in,
+            path="/"
+        )
+        
+        redirect_response.set_cookie(
+            key="refresh_token",
+            value=auth_response.session.refresh_token,
+            httponly=True,
+            secure=False,   # Set to True in production with HTTPS
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30,  # 30 days
+            path="/"
+        )
+        
+        return redirect_response
+        
+    except Exception as e:
+        return RedirectResponse(url=f"{frontend_url}/?error={str(e)}")
+
+
+@router.post('/session/exchange')
+async def exchange_session(callback_request: CallbackRequest):
+    """
+    Exchange OAuth code for session tokens.
+    Used when frontend handles the callback directly.
     """
     try:
-        response = supabase.auth.refresh_session(refresh_token)
-
+        response = supabase.auth.exchange_code_for_session({
+            "auth_code": callback_request.code
+        })
+        
         if not response.session:
-            raise HTTPException(status_code=401, detail="Failed to refresh session")
-
+            raise HTTPException(status_code=401, detail="Failed to exchange code for session")
+        
         return {
             "access_token": response.session.access_token,
             "refresh_token": response.session.refresh_token,
             "expires_in": response.session.expires_in,
             "expires_at": response.session.expires_at,
-            "token_type": response.session.token_type
+            "token_type": response.session.token_type,
+            "user": {
+                "id": response.user.id,
+                "email": response.user.email,
+                "user_metadata": response.user.user_metadata,
+                "app_metadata": response.user.app_metadata,
+                "created_at": response.user.created_at
+            }
         }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Exchange error: {str(e)}")
+
+
+@router.post('/refresh')
+async def refresh_session(
+    response: Response,
+    refresh_token: Optional[str] = Cookie(None)
+):
+    """
+    Refresh an expired session using refresh token from httpOnly cookie.
+    """
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token found")
+    
+    try:
+        auth_response = supabase.auth.refresh_session(refresh_token)
+
+        if not auth_response.session:
+            raise HTTPException(status_code=401, detail="Failed to refresh session")
+
+        # Update cookies with new tokens
+        response.set_cookie(
+            key="access_token",
+            value=auth_response.session.access_token,
+            httponly=True,
+            secure=False,  # Set to True in production
+            samesite="lax",
+            max_age=auth_response.session.expires_in,
+            path="/"
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=auth_response.session.refresh_token,
+            httponly=True,
+            secure=False,  # Set to True in production
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30,
+            path="/"
+        )
+
+        return {"message": "Session refreshed successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Refresh error: {str(e)}")
 
 
 @router.get('/user')
-async def get_user(access_token: str):
+async def get_user(access_token: Optional[str] = Cookie(None)):
     """
-    Get current user information using access token.
+    Get current user information using access token from httpOnly cookie.
     """
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     try:
         response = supabase.auth.get_user(access_token)
 
@@ -126,16 +217,28 @@ async def get_user(access_token: str):
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to get user: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 
 
 @router.post('/logout')
-async def logout(access_token: str):
+async def logout(
+    response: Response,
+    access_token: Optional[str] = Cookie(None)
+):
     """
-    Sign out user and invalidate their session.
+    Sign out user and clear httpOnly cookies.
     """
     try:
-        supabase.auth.sign_out(access_token)
+        if access_token:
+            supabase.auth.sign_out(access_token)
+        
+        # Clear cookies
+        response.delete_cookie(key="access_token", path="/")
+        response.delete_cookie(key="refresh_token", path="/")
+        
         return {"message": "Successfully logged out"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Logout error: {str(e)}")
+        # Still clear cookies even if Supabase signout fails
+        response.delete_cookie(key="access_token", path="/")
+        response.delete_cookie(key="refresh_token", path="/")
+        return {"message": "Logged out (with errors)", "error": str(e)}

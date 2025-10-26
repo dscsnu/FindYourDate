@@ -1,6 +1,10 @@
 <script>
     import * as rive from "@rive-app/canvas";
     import { onMount } from 'svelte';
+    import { goto } from '$app/navigation';
+    import { authStore } from '$lib/stores/auth';
+    import { API_BASE_URL } from '$lib/api';
+    import SignOutButton from '$lib/components/SignOutButton.svelte';
 
     let canvas;
     let currentAnimation = '';
@@ -13,10 +17,55 @@
     let heartInterval = null;
     let displayedName = $state('');
     let showAge = $state(false);
+    let loading = $state(true);
     
     // TODO: Replace with actual matched user data from your backend/state
     let matchedUserName = 'Sarah';
     let matchedUserAge = 24;
+
+    onMount(async () => {
+        await authStore.loadSession();
+        const currentSession = await new Promise(resolve => {
+            const unsubscribe = authStore.subscribe(value => {
+                resolve(value);
+                unsubscribe();
+            });
+        });
+        
+        if (!currentSession?.authenticated) {
+            goto('/');
+            return;
+        }
+
+        // Check user status - only show endScreen if they've completed everything
+        try {
+            const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.redirect_to === 'form') {
+                    // User hasn't completed form yet
+                    goto('/userForm');
+                    return;
+                } else if (data.redirect_to === 'chat') {
+                    // User hasn't completed chat yet
+                    sessionStorage.setItem('user_id', data.user_id);
+                    goto('/aiChatRoom');
+                    return;
+                }
+                // If redirect_to === 'complete', stay on this page
+                sessionStorage.setItem('user_id', data.user_id);
+            }
+        } catch (error) {
+            console.error('Error checking user status:', error);
+        }
+        
+        // All checks passed, show the page
+        loading = false;
+    });
 
     function createHeart() {
       const heart = {
@@ -76,7 +125,7 @@
 
     function playAnalyzingAnimation() {
       currentAnimation = '/animations/heart-hi.riv';
-      currentText = 'Analyzing your vibe';
+      currentText = 'Finding your perfect match';
       showDots = true;
       showButton = false;
       loadAnimation();
@@ -125,14 +174,56 @@
       });
     }
 
+    onMount(async () => {
+        await authStore.loadSession();
+        const currentSession = await new Promise(resolve => {
+            const unsubscribe = authStore.subscribe(value => {
+                resolve(value);
+                unsubscribe();
+            });
+        });
+        
+        if (!currentSession?.authenticated) {
+            goto('/');
+            return;
+        }
+
+        // Check user status - only show endScreen if they've completed everything
+        try {
+            const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.redirect_to === 'form') {
+                    // User hasn't completed form yet
+                    goto('/userForm');
+                    return;
+                } else if (data.redirect_to === 'chat') {
+                    // User hasn't completed chat yet
+                    sessionStorage.setItem('user_id', data.user_id);
+                    goto('/aiChatRoom');
+                    return;
+                }
+                // If redirect_to === 'complete', stay on this page
+                sessionStorage.setItem('user_id', data.user_id);
+            }
+        } catch (error) {
+            console.error('Error checking user status:', error);
+        }
+        
+        // All checks passed, show the page
+        loading = false;
+        
+        // Wait for DOM to render, then start animation
+        setTimeout(() => {
+            playAnalyzingAnimation();
+        }, 200);
+    });
+
     $effect(() => {
-      if (!canvas) return;
-
-      // Initialize with analyzing animation by default
-      setTimeout(() => {
-        playMatchFoundAnimation();
-      }, 0);
-
       return () => {
         if (riveInstance) {
           riveInstance.cleanup();
@@ -142,7 +233,23 @@
     });
 </script>
 
+{#if loading}
+    <div class="bg-white flex items-center justify-center w-screen h-screen">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style="border-color: var(--primary-color); border-top-color: transparent;"></div>
+            <p class="text-xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                Loading your match...
+            </p>
+        </div>
+    </div>
+{:else}
+
 <div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
+  <!-- Sign Out Button - Top Right -->
+  <div class="absolute top-4 right-4 z-50">
+    <SignOutButton />
+  </div>
+
   <!-- Floating hearts container (behind everything) -->
   {#if matchRevealed}
     <div class="hearts-container">
@@ -200,6 +307,7 @@
     </div>
   {/if}
 </div>
+{/if}
 
 <style>
   .hearts-container {
