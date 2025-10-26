@@ -26,40 +26,40 @@ class SessionResponse(BaseModel):
     token_type: str
     user: dict
 
-
-@router.post('/google', response_model=SessionResponse)
-async def google_auth(auth_request: GoogleAuthRequest):
-    """
-    Authenticate user with Google ID token from frontend.
-    Returns session data (access_token, refresh_token, user info) for frontend to store.
-    """
-    try:
-        # Sign in with Google ID token
-        response = supabase.auth.sign_in_with_id_token({
-            "provider": "google",
-            "token": auth_request.id_token
-        })
-
-        if not response.session:
-            raise HTTPException(status_code=401, detail="Authentication failed")
-
-        # Return session data for frontend to store
-        return {
-            "access_token": response.session.access_token,
-            "refresh_token": response.session.refresh_token,
-            "expires_in": response.session.expires_in,
-            "expires_at": response.session.expires_at,
-            "token_type": response.session.token_type,
-            "user": {
-                "id": response.user.id,
-                "email": response.user.email,
-                "user_metadata": response.user.user_metadata,
-                "app_metadata": response.user.app_metadata,
-                "created_at": response.user.created_at
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Authentication error: {str(e)}")
+## frontend needs to be managed if going with this
+# @router.post('/google', response_model=SessionResponse)
+# async def google_auth(auth_request: GoogleAuthRequest):
+#     """
+#     Authenticate user with Google ID token from frontend.
+#     Returns session data (access_token, refresh_token, user info) for frontend to store.
+#     """
+#     try:
+#         # Sign in with Google ID token
+#         response = supabase.auth.sign_in_with_id_token({
+#             "provider": "google",
+#             "token": auth_request.id_token
+#         })
+#
+#         if not response.session:
+#             raise HTTPException(status_code=401, detail="Authentication failed")
+#
+#         # Return session data for frontend to store
+#         return {
+#             "access_token": response.session.access_token,
+#             "refresh_token": response.session.refresh_token,
+#             "expires_in": response.session.expires_in,
+#             "expires_at": response.session.expires_at,
+#             "token_type": response.session.token_type,
+#             "user": {
+#                 "id": response.user.id,
+#                 "email": response.user.email,
+#                 "user_metadata": response.user.user_metadata,
+#                 "app_metadata": response.user.app_metadata,
+#                 "created_at": response.user.created_at
+#             }
+#         }
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Authentication error: {str(e)}")
 
 
 @router.get('/google/url')
