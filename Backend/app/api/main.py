@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 HOST = os.environ.get('HOST', "0.0.0.0")
-PORT = os.environ.get('PORT', 8000)
+PORT = os.environ.get('PORT', 3000)
 
 app = FastAPI()
 
