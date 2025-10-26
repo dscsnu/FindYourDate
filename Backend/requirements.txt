@@ -21,7 +21,8 @@ networkx==3.3
 # Environment & Config
 python-dotenv==1.0.1
 
-# Authentication (if needed)
+# Authentication
+supabase==2.11.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.0

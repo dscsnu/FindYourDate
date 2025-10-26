@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.orm import relationship
-from .base import Base
+from app.db.database import Base
 
 
 class User(Base):
@@ -15,8 +15,6 @@ class User(Base):
     accept_non_straight = Column(Boolean, default=True)
     age_preference = Column(Integer, nullable=True) # 1 for higher or same, 0 for no preference, -1 for lower or same
     age = Column(Integer, nullable=False)
-
-    matches = relationship("MatchHistory", back_populates="user")
 
     def __repr__(self):
         return f"<User id={self.id} name={self.name}>"

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Float, ForeignKey, String
-from .base import Base
+from app.db.database import Base
 
 class MatchScore(Base):
     __tablename__ = "match_scores"

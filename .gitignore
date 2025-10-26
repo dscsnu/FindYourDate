@@ -10,3 +10,5 @@ __pycache__/
 .python-version
 uv.lock
 Backend/api_examples.http
+alembic.ini
+Backend/alembic.ini

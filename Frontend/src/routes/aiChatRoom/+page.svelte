@@ -1,4 +1,47 @@
 <script>
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { authStore } from '$lib/stores/auth';
+
+	let session = $state(null);
+	let loading = $state(true);
+	let userId = $state(null);
+
+	// Subscribe to auth store
+	authStore.subscribe(value => {
+		session = value;
+	});
+
+	onMount(async () => {
+		// Load session if exists
+		await authStore.loadSession();
+		
+		// Check if user is authenticated
+		const currentSession = await new Promise(resolve => {
+			const unsubscribe = authStore.subscribe(value => {
+				resolve(value);
+				unsubscribe();
+			});
+		});
+		
+		if (!currentSession?.user) {
+			// Redirect to home if not authenticated
+			goto('/');
+			return;
+		}
+
+		// Check if user has completed the form
+		const storedUserId = sessionStorage.getItem('user_id');
+		if (!storedUserId) {
+			// Redirect to form if haven't completed it
+			goto('/userForm');
+			return;
+		}
+
+		userId = storedUserId;
+		loading = false;
+	});
+
 	let messages = [
 		{ id: 1, text: "Hi! How are you?", sender: "ai" },
 		{ id: 2, text: "I'm doing great! Thanks for asking.", sender: "user" },
@@ -62,6 +105,16 @@ setTimeout(() => {
 
 </script>
 
+{#if loading}
+	<div class="min-h-screen flex items-center justify-center" style="background-color: var(--primary-color);">
+		<div class="text-center">
+			<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
+				Loading chat...
+			</p>
+		</div>
+	</div>
+{:else}
 <div class="chat-container" style="background-color: var(--primary-color);">
 	<!-- Chat Header -->
 	<div class="chat-header" style="background-color: var(--primary-color); height: 80px;">
@@ -145,6 +198,7 @@ setTimeout(() => {
 		</div>
 	</div>
 </div>
+{/if}
 
 <style>
 	.chat-container {

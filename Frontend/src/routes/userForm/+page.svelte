@@ -1,5 +1,38 @@
 <script>
     import { goto } from "$app/navigation";
+	import { onMount } from 'svelte';
+	import { authStore } from '$lib/stores/auth';
+	import { api } from '$lib/api';
+
+	let session = $state(null);
+	let loading = $state(true);
+	let submitting = $state(false);
+
+	// Subscribe to auth store
+	authStore.subscribe(value => {
+		session = value;
+	});
+
+	onMount(async () => {
+		// Load session if exists
+		await authStore.loadSession();
+		
+		// Check if user is authenticated
+		const currentSession = await new Promise(resolve => {
+			const unsubscribe = authStore.subscribe(value => {
+				resolve(value);
+				unsubscribe();
+			});
+		});
+		
+		if (!currentSession?.user) {
+			// Redirect to home if not authenticated
+			goto('/');
+			return;
+		}
+		
+		loading = false;
+	});
 
 	let formData = {
 		gender: '',
@@ -107,12 +140,67 @@
 	function handleSubmit() {
 		if (validateCurrentStep()) {
 			console.log('Form submitted:', formData);
+			submitting = true;
+			
+			// Create user in backend
+			createUser();
+		}
+	}
+
+	async function createUser() {
+		try {
+			if (!session?.user) {
+				throw new Error('No authenticated user');
+			}
+
+			// Map frontend form data to backend user model
+			const userData = {
+				name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+				email: session.user.email,
+				phone: formData.mobileNumber,
+				gender: formData.gender === 'male' ? 'M' : 'W',
+				orientation: formData.sexuality,
+				age: parseInt(formData.age),
+				accept_non_straight: formData.sexuality === 'straight' ? (formData.comfortableWithNonStraight || false) : true,
+				age_preference: formData.agePreference === 'older' ? 1 : (formData.agePreference === 'younger' ? -1 : 0)
+			};
+
+			// Get access token
+			const accessToken = session.access_token;
+
+			// Create user in backend
+			const response = await fetch('http://localhost:8000/users/', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${accessToken}`
+				},
+				body: JSON.stringify(userData)
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.detail || 'Failed to create user');
+			}
+
+			const createdUser = await response.json();
+			console.log('User created:', createdUser);
+
+			// Store user ID in session storage for later use
+			sessionStorage.setItem('user_id', createdUser.id);
+
 			// Animate form down
 			animateFormDown = true;
 			setTimeout(() => {
 				showForm = false;
 				showOutro = true;
-			}, 800); // Show outro after animation completes
+				submitting = false;
+			}, 800);
+
+		} catch (error) {
+			console.error('Error creating user:', error);
+			alert(error instanceof Error ? error.message : 'Failed to create user. Please try again.');
+			submitting = false;
 		}
 	}
 
@@ -129,6 +217,17 @@
 </script>
 
 <div class="min-h-screen flex flex-col" style="background-color: var(--primary-color);">
+	<!-- Loading Screen -->
+	{#if loading}
+		<div class="flex-1 flex items-center justify-center">
+			<div class="text-center">
+				<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+				<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
+					Loading...
+				</p>
+			</div>
+		</div>
+	{:else}
 	<!-- Intro Screen -->
 	{#if showIntro}
 		<div class="flex-1 flex items-center justify-center px-4">
@@ -542,10 +641,18 @@
 					<button 
 						type="button"
 						on:click={handleSubmit}
-						class="py-3 px-8 rounded-full text-white font-semibold text-base hover:opacity-90 transition-all duration-200 shadow-md"
+						disabled={submitting}
+						class="py-3 px-8 rounded-full text-white font-semibold text-base hover:opacity-90 transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
 						style="background-color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
 					>
-						Submit
+						{#if submitting}
+							<span class="flex items-center gap-2">
+								<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+								Creating...
+							</span>
+						{:else}
+							Submit
+						{/if}
 					</button>
 				{/if}
 			</div>
@@ -553,6 +660,7 @@
 	</div>
 		</div>
 	</div>
+	{/if}
 	{/if}
 
 <style>
