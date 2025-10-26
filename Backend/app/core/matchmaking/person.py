@@ -8,7 +8,12 @@ class Person:
         self.orientation = user.orientation
         self.accepts_bi = user.accept_non_straight
         self.preferences = []
+        self.similarity_scores = {}  # Maps Person -> similarity score
         self.matched_to = None
+        self.age = user.age
+        self.phone = user.phone
+        self.email = user.email
+        self.age_preference = user.age_preference
 
     def __repr__(self):
         return f"{self.name}({self.gender},{self.orientation})"

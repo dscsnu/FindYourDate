@@ -1,0 +1,30 @@
+# Web Framework
+fastapi==0.120.0
+uvicorn[standard]==0.38.0
+pydantic==2.9.2
+python-multipart==0.0.20
+
+# Database
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9
+alembic==1.13.3
+
+# Vector Database
+qdrant-client==1.12.0
+
+# AI/ML
+openai==2.6.1
+numpy==2.3.4
+scipy==1.13.1
+networkx==3.3
+
+# Environment & Config
+python-dotenv==1.0.1
+
+# Authentication (if needed)
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.0
+
+# CORS
+fastapi-cors==0.0.6

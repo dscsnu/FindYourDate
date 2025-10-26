@@ -6,6 +6,7 @@ __pycache__/
 .idea/
 .venv/
 
-pyproject.toml
+# pyproject.toml
 .python-version
 uv.lock
+Backend/api_examples.http

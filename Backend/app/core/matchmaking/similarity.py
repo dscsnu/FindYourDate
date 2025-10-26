@@ -1,14 +1,28 @@
-from numpy.linalg import norm
-import numpy as np
+from cosine_similarity_module import cosine_similarity
 
-def cosine_similarity(vec1, vec2):
-    if norm(vec1) == 0 or norm(vec2) == 0:
-        return 0.0
-    return np.dot(vec1, vec2) / (norm(vec1) * norm(vec2))
+cosine_similarity = cosine_similarity
+
+take_age_preference = False
 
 def valid_partner(a, b):
     if a.id == b.id:
         return False
+
+    if a.age < 18 or b.age < 18:
+        if b.age < 18 and a.age < 18:
+            pass
+        else:
+            return False
+
+    if take_age_preference:
+        if a.age_preference == 1 and b.age < a.age:
+            return False
+        if a.age_preference == -1 and b.age > a.age:
+            return False
+        if b.age_preference == 1 and a.age < b.age:
+            return False
+        if b.age_preference == -1 and a.age > b.age:
+            return False
 
     if a.orientation == "straight":
         if a.gender == "M":
@@ -18,8 +32,8 @@ def valid_partner(a, b):
                 elif b.orientation == "straight":
                     return True
                 return False
-                
-        elif a.gender == "W":   
+
+        elif a.gender == "W":
             if b.gender == "M":
                 if b.orientation == "bi":
                     return a.accepts_bi

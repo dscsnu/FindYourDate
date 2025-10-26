@@ -22,12 +22,12 @@ def decompose_pools(matches: list, unmatched: list) -> dict:
         if p.gender == "M":
             if p.orientation in ("straight", "bi"):
                 straight_men.append(p)
-            if p.orientation in ("gay", "bi"):
+            if p.orientation in ("gay"):
                 gay_men.append(p)
         elif p.gender == "W":
             if p.orientation in ("straight", "bi"):
                 straight_women.append(p)
-            if p.orientation in ("lesbian", "bi"):
+            if p.orientation in ("lesbian"):
                 lesbian_women.append(p)
 
     return {
