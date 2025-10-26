@@ -3,6 +3,8 @@ Backend/alembic/versions/3fe746b7e3a4_init_schema.py
 .env
 __pycache__/
 .vscode/
+.idea/
+.venv/
 
 # pyproject.toml
 .python-version
