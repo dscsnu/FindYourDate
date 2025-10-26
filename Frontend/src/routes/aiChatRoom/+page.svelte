@@ -2,10 +2,20 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
+	import { API_BASE_URL } from '$lib/api';
+	import SignOutButton from '$lib/components/SignOutButton.svelte';
 
 	let session = $state(null);
 	let loading = $state(true);
-	let userId = $state(null);
+	let userEmail = $state(null);
+	let chatHistory = $state([]);
+	let messages = $state([]);
+	let messageIdCounter = $state(1);
+	let newMessage = $state('');
+	let isTyping = $state(false);
+	let isComplete = $state(false);
+	let currentQuestion = $state(null);
+	let questionNumber = $state(0);
 
 	// Subscribe to auth store
 	authStore.subscribe(value => {
@@ -24,84 +34,168 @@
 			});
 		});
 		
-		if (!currentSession?.user) {
+		if (!currentSession?.authenticated) {
 			// Redirect to home if not authenticated
 			goto('/');
 			return;
 		}
 
-		// Check if user has completed the form
-		const storedUserId = sessionStorage.getItem('user_id');
-		if (!storedUserId) {
-			// Redirect to form if haven't completed it
-			goto('/userForm');
-			return;
+		userEmail = currentSession.user.email;
+
+		// Check user status
+		try {
+			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(userEmail)}`, {
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				
+				if (data.redirect_to === 'form') {
+					// User hasn't completed form yet
+					goto('/userForm');
+					return;
+				} else if (data.redirect_to === 'complete') {
+					// User has already completed chat
+					sessionStorage.setItem('user_id', data.user_id);
+					goto('/endScreen');
+					return;
+				}
+				// If redirect_to === 'chat', stay on this page
+				sessionStorage.setItem('user_id', data.user_id);
+			}
+		} catch (error) {
+			console.error('Error checking user status:', error);
 		}
 
-		userId = storedUserId;
 		loading = false;
+
+		// Fetch first question
+		await fetchNextQuestion();
 	});
 
-	let messages = [
-		{ id: 1, text: "Hi! How are you?", sender: "ai" },
-		{ id: 2, text: "I'm doing great! Thanks for asking.", sender: "user" },
-		{ id: 3, text: "What would you like to talk about today?", sender: "ai" }
-	];
-	
-	let newMessage = '';
-	let messageIdCounter = 4;
-	let isTyping = false;
+	async function fetchNextQuestion() {
+		isTyping = true;
+		
+		try {
+			const response = await fetch(`${API_BASE_URL}/chat/next-question`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					user_email: userEmail,
+					chat_history: chatHistory
+				})
+			});
 
-	function sendMessage() {
-		if (newMessage.trim()) {
-			messages = [...messages, {
-				id: messageIdCounter++,
-				text: newMessage,
-				sender: 'user'
-			}];
+			if (response.status === 429) {
+				// Rate limited
+				const errorData = await response.json();
+				isTyping = false;
+				
+				messages = [...messages, {
+					id: messageIdCounter++,
+					text: `⚠️ ${errorData.detail.message || 'Too many requests. Please wait a moment before continuing.'}`,
+					sender: 'ai'
+				}];
+				return;
+			}
+
+			if (!response.ok) {
+				throw new Error('Failed to fetch question');
+			}
+
+			const data = await response.json();
 			
-			newMessage = '';
-		}
-	}
+			isTyping = false;
+			
+			if (data.is_complete) {
+				// Questionnaire complete
+				isComplete = true;
+				
+				// Add completion message
+				messages = [...messages, {
+					id: messageIdCounter++,
+					text: data.message || "Questionnaire complete! Profile created and ready to find matches.",
+					sender: 'ai'
+				}];
 
-	// @ts-ignore
-	function sendAIMessage(text) {
-		if (text && text.trim()) {
+				// Show embedding status
+				if (data.embedding_status === 'success') {
+					messages = [...messages, {
+						id: messageIdCounter++,
+						text: `✅ Successfully processed ${data.answers_processed} answers and created your matching profile!`,
+						sender: 'ai'
+					}];
+					
+					// Redirect to end screen after 3 seconds
+					setTimeout(() => {
+						goto('/endScreen');
+					}, 3000);
+				} else if (data.embedding_error) {
+					messages = [...messages, {
+						id: messageIdCounter++,
+						text: `⚠️ There was an issue creating your profile: ${data.embedding_error}`,
+						sender: 'ai'
+					}];
+				}
+			} else {
+				// New question received
+				currentQuestion = data.question;
+				questionNumber = data.question_number;
+				
+				// Add question to UI
+				messages = [...messages, {
+					id: messageIdCounter++,
+					text: data.question,
+					sender: 'ai'
+				}];
+			}
+		} catch (error) {
+			isTyping = false;
+			console.error('Error fetching question:', error);
+			
+			// Show error message
 			messages = [...messages, {
 				id: messageIdCounter++,
-				text: text.trim(),
+				text: "Sorry, there was an error. Please try again.",
 				sender: 'ai'
 			}];
 		}
 	}
 
-	// @ts-ignore
+	async function sendMessage() {
+		if (!newMessage.trim() || isComplete) return;
+		
+		const userAnswer = newMessage.trim();
+		
+		// Add user message to UI
+		messages = [...messages, {
+			id: messageIdCounter++,
+			text: userAnswer,
+			sender: 'user'
+		}];
+		
+		// Add to chat history
+		chatHistory = [...chatHistory, {
+			q: currentQuestion,
+			a: userAnswer
+		}];
+		
+		// Clear input
+		newMessage = '';
+		
+		// Fetch next question
+		await fetchNextQuestion();
+	}
+
 	function handleKeypress(event) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			sendMessage();
 		}
 	}
-
-	function showTypingIndicator() {
-		isTyping = true;
-	}
-
-	function hideTypingIndicator() {
-		isTyping = false;
-	}
-	showTypingIndicator();
-
-// To hide it
-hideTypingIndicator();
-
-// Example: Show typing, wait 5 seconds, then show AI message
-showTypingIndicator();
-setTimeout(() => {
-    hideTypingIndicator();
-    sendAIMessage("Here's my response!");
-}, 5000);
-
 
 </script>
 
@@ -118,12 +212,19 @@ setTimeout(() => {
 <div class="chat-container" style="background-color: var(--primary-color);">
 	<!-- Chat Header -->
 	<div class="chat-header" style="background-color: var(--primary-color); height: 80px;">
-		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center gap-4 h-full">
+		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between h-full">
 			<h1 class="text-white text-2xl font-bold" style="font-family: 'Nunito', sans-serif;">
 				Find Your Date
 			</h1>
+			<div class="flex items-center gap-4">
+				{#if questionNumber > 0 && !isComplete}
+					<div class="text-white text-lg font-semibold" style="font-family: 'Nunito', sans-serif;">
+						Question {questionNumber}/10
+					</div>
+				{/if}
+				<SignOutButton />
+			</div>
 		</div>
-		
 	</div>
 
 	<!-- Chat Messages Container -->
@@ -173,11 +274,11 @@ setTimeout(() => {
 	<!-- Message Input Area -->
 	<div class="chat-input bg-white shadow-lg">
 		<div class="max-w-5xl mx-auto px-4 py-4">
-			<form on:submit|preventDefault={sendMessage} class="flex items-center gap-3">
+			<form onsubmit={(e) => { e.preventDefault(); sendMessage(); }} class="flex items-center gap-3">
 				<div class="flex-1">
 					<textarea
 						bind:value={newMessage}
-						on:keypress={handleKeypress}
+						onkeypress={handleKeypress}
 						placeholder="Type your message..."
 						rows="1"
 						class="w-full px-4 py-3 rounded-full resize-none focus:ring-2 focus:border-transparent outline-none transition-all"

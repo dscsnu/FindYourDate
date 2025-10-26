@@ -61,42 +61,61 @@ async def google_login(redirect_to: Optional[str] = None):
 
 @router.get('/google/callback')
 async def google_callback(
-    request: Request,
+    response: Response,
     code: Optional[str] = None,
     error: Optional[str] = None,
     redirect_to: Optional[str] = None
 ):
     """
     Handles the OAuth callback from Google.
-    Exchanges the code for a session and redirects to frontend with session data.
+    Exchanges the code for a session and stores tokens in httpOnly cookies.
+    Tokens are NEVER exposed to frontend JavaScript.
     """
     if error:
-        return RedirectResponse(url=f"{frontend_url}?error={error}")
+        return RedirectResponse(url=f"{frontend_url}/?error={error}")
     
     if not code:
-        return RedirectResponse(url=f"{frontend_url}?error=missing_code")
+        return RedirectResponse(url=f"{frontend_url}/?error=missing_code")
     
     try:
         # Exchange code for session
-        response = supabase.auth.exchange_code_for_session({
+        auth_response = supabase.auth.exchange_code_for_session({
             "auth_code": code
         })
         
-        if not response.session:
-            return RedirectResponse(url=f"{frontend_url}?error=auth_failed")
+        if not auth_response.session:
+            return RedirectResponse(url=f"{frontend_url}/?error=auth_failed")
         
-        # Create redirect URL with session data as URL parameters (temporary, will be stored in frontend)
-        redirect_url = redirect_to or f"{frontend_url}/userForm"
+        # Create redirect response
+        redirect_url = f"{frontend_url}/auth/callback?success=true"
+        redirect_response = RedirectResponse(url=redirect_url)
         
-        # Add session tokens as query params (frontend will store these securely)
-        redirect_url += f"?access_token={response.session.access_token}"
-        redirect_url += f"&refresh_token={response.session.refresh_token}"
-        redirect_url += f"&expires_at={response.session.expires_at}"
+        # Set httpOnly cookies (NOT accessible from JavaScript)
+        # This keeps tokens secure and prevents XSS attacks
+        redirect_response.set_cookie(
+            key="access_token",
+            value=auth_response.session.access_token,
+            httponly=True,  # Cannot be accessed by JavaScript
+            secure=False,   # Set to True in production with HTTPS
+            samesite="lax", # CSRF protection
+            max_age=auth_response.session.expires_in,
+            path="/"
+        )
         
-        return RedirectResponse(url=redirect_url)
+        redirect_response.set_cookie(
+            key="refresh_token",
+            value=auth_response.session.refresh_token,
+            httponly=True,
+            secure=False,   # Set to True in production with HTTPS
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30,  # 30 days
+            path="/"
+        )
+        
+        return redirect_response
         
     except Exception as e:
-        return RedirectResponse(url=f"{frontend_url}?error={str(e)}")
+        return RedirectResponse(url=f"{frontend_url}/?error={str(e)}")
 
 
 @router.post('/session/exchange')
@@ -132,32 +151,56 @@ async def exchange_session(callback_request: CallbackRequest):
 
 
 @router.post('/refresh')
-async def refresh_session(refresh_token: str):
+async def refresh_session(
+    response: Response,
+    refresh_token: Optional[str] = Cookie(None)
+):
     """
-    Refresh an expired session using refresh token.
+    Refresh an expired session using refresh token from httpOnly cookie.
     """
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token found")
+    
     try:
-        response = supabase.auth.refresh_session(refresh_token)
+        auth_response = supabase.auth.refresh_session(refresh_token)
 
-        if not response.session:
+        if not auth_response.session:
             raise HTTPException(status_code=401, detail="Failed to refresh session")
 
-        return {
-            "access_token": response.session.access_token,
-            "refresh_token": response.session.refresh_token,
-            "expires_in": response.session.expires_in,
-            "expires_at": response.session.expires_at,
-            "token_type": response.session.token_type
-        }
+        # Update cookies with new tokens
+        response.set_cookie(
+            key="access_token",
+            value=auth_response.session.access_token,
+            httponly=True,
+            secure=False,  # Set to True in production
+            samesite="lax",
+            max_age=auth_response.session.expires_in,
+            path="/"
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=auth_response.session.refresh_token,
+            httponly=True,
+            secure=False,  # Set to True in production
+            samesite="lax",
+            max_age=60 * 60 * 24 * 30,
+            path="/"
+        )
+
+        return {"message": "Session refreshed successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Refresh error: {str(e)}")
 
 
 @router.get('/user')
-async def get_user(access_token: str):
+async def get_user(access_token: Optional[str] = Cookie(None)):
     """
-    Get current user information using access token.
+    Get current user information using access token from httpOnly cookie.
     """
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
     try:
         response = supabase.auth.get_user(access_token)
 
@@ -174,16 +217,28 @@ async def get_user(access_token: str):
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to get user: {str(e)}")
+        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 
 
 @router.post('/logout')
-async def logout(access_token: str):
+async def logout(
+    response: Response,
+    access_token: Optional[str] = Cookie(None)
+):
     """
-    Sign out user and invalidate their session.
+    Sign out user and clear httpOnly cookies.
     """
     try:
-        supabase.auth.sign_out(access_token)
+        if access_token:
+            supabase.auth.sign_out(access_token)
+        
+        # Clear cookies
+        response.delete_cookie(key="access_token", path="/")
+        response.delete_cookie(key="refresh_token", path="/")
+        
         return {"message": "Successfully logged out"}
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Logout error: {str(e)}")
+        # Still clear cookies even if Supabase signout fails
+        response.delete_cookie(key="access_token", path="/")
+        response.delete_cookie(key="refresh_token", path="/")
+        return {"message": "Logged out (with errors)", "error": str(e)}

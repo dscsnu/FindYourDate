@@ -12,29 +12,30 @@ export const api = {
 			return response.json();
 		},
 		
-		refreshSession: async (refreshToken: string) => {
+		refreshSession: async () => {
+			// Backend reads refresh_token from httpOnly cookie
 			const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ refresh_token: refreshToken }),
+				credentials: 'include', // Send cookies
 			});
 			if (!response.ok) throw new Error('Failed to refresh session');
 			return response.json();
 		},
 		
-		getUser: async (accessToken: string) => {
-			const response = await fetch(
-				`${API_BASE_URL}/auth/user?access_token=${accessToken}`
-			);
+		getUser: async () => {
+			// Backend reads access_token from httpOnly cookie
+			const response = await fetch(`${API_BASE_URL}/auth/user`, {
+				credentials: 'include', // Send cookies
+			});
 			if (!response.ok) throw new Error('Failed to get user');
 			return response.json();
 		},
 		
-		logout: async (accessToken: string) => {
+		logout: async () => {
+			// Backend reads access_token from httpOnly cookie and clears cookies
 			const response = await fetch(`${API_BASE_URL}/auth/logout`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ access_token: accessToken }),
+				credentials: 'include', // Send cookies
 			});
 			if (!response.ok) throw new Error('Failed to logout');
 			return response.json();

@@ -16,5 +16,8 @@ class User(Base):
     age_preference = Column(Integer, nullable=True) # 1 for higher or same, 0 for no preference, -1 for lower or same
     age = Column(Integer, nullable=False)
 
+    # Relationship to match history
+    matches = relationship("MatchHistory", back_populates="user")
+
     def __repr__(self):
         return f"<User id={self.id} name={self.name}>"

@@ -2,12 +2,47 @@
   import { goto } from "$app/navigation";
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { api } from '$lib/api';
+	import { api, API_BASE_URL } from '$lib/api';
 
 	let hearts = $state([]);
 	let heartIdCounter = 0;
 	const MAX_HEARTS = 4;
 	let loading = $state(false);
+	let checkingStatus = $state(true);
+
+	async function checkUserStatus(session) {
+		try {
+			// Check user status in backend using cookie authentication
+			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(session.user.email)}`, {
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to check user status');
+			}
+
+			const data = await response.json();
+			
+			// Redirect based on status
+			if (data.redirect_to === 'form') {
+				// User needs to fill form
+				goto('/userForm');
+			} else if (data.redirect_to === 'chat') {
+				// User needs to complete chat
+				sessionStorage.setItem('user_id', data.user_id);
+				goto('/aiChatRoom');
+			} else if (data.redirect_to === 'complete') {
+				// User has completed everything - show end screen or matches
+				sessionStorage.setItem('user_id', data.user_id);
+				goto('/endScreen');
+			}
+		} catch (error) {
+			console.error('Error checking user status:', error);
+			// If check fails, let them stay on landing page
+		} finally {
+			checkingStatus = false;
+		}
+	}
 
 	async function signInWithGoogle() {
 		loading = true;
@@ -44,9 +79,25 @@
 		}, (heart.duration + heart.delay) * 1000);
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		// Load existing session if available
-		authStore.loadSession();
+		await authStore.loadSession();
+		
+		// Check if user is already authenticated
+		const currentSession = await new Promise(resolve => {
+			const unsubscribe = authStore.subscribe(value => {
+				resolve(value);
+				unsubscribe();
+			});
+		});
+		
+		if (currentSession?.authenticated) {
+			// User is authenticated, check their status
+			await checkUserStatus(currentSession);
+		} else {
+			// Not authenticated, stay on landing page
+			checkingStatus = false;
+		}
 
 		// Create initial hearts
 		const interval = setInterval(() => {
@@ -57,6 +108,16 @@
 	});
 </script>
 
+{#if checkingStatus}
+	<div class="flex items-center justify-center min-h-screen" style="background-color: var(--primary-color);">
+		<div class="text-center">
+			<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+			<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
+				Loading...
+			</p>
+		</div>
+	</div>
+{:else}
 <div class="flex items-center justify-center min-h-screen px-4">
 	<!-- Floating Hearts Background -->
 	<div class="floating-hearts-container">
@@ -121,6 +182,7 @@
 		</div>
 	</div>
 </div>
+{/if}
 
 <style>
 	.floating-hearts-container {

@@ -2,7 +2,8 @@
     import { goto } from "$app/navigation";
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
-	import { api } from '$lib/api';
+	import { api, API_BASE_URL } from '$lib/api';
+	import SignOutButton from '$lib/components/SignOutButton.svelte';
 
 	let session = $state(null);
 	let loading = $state(true);
@@ -25,16 +26,43 @@
 			});
 		});
 		
-		if (!currentSession?.user) {
+		if (!currentSession?.authenticated) {
 			// Redirect to home if not authenticated
 			goto('/');
 			return;
+		}
+
+		// Check user status - if they've already completed form, redirect accordingly
+		try {
+			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				
+				if (data.redirect_to === 'chat') {
+					// User has completed form but not chat
+					sessionStorage.setItem('user_id', data.user_id);
+					goto('/aiChatRoom');
+					return;
+				} else if (data.redirect_to === 'complete') {
+					// User has completed everything
+					sessionStorage.setItem('user_id', data.user_id);
+					goto('/endScreen');
+					return;
+				}
+				// If redirect_to === 'form', stay on this page
+			}
+		} catch (error) {
+			console.error('Error checking user status:', error);
+			// If check fails, let them fill the form
 		}
 		
 		loading = false;
 	});
 
-	let formData = {
+	let formData = $state({
 		gender: '',
 		sexuality: '',
 		comfortableWithNonStraight: null,
@@ -42,18 +70,18 @@
 		age: 21,
 		mobileNumber: '',
 		consentToShare: false
-	};
+	});
 	
 	// Current step tracker
-	let currentStep = 0;
+	let currentStep = $state(0);
 	const totalSteps = 6; // Updated to 6 steps
-	
+
 	// Form animation state
-	let showIntro = true;
-	let animateForm = false;
-	let showOutro = false;
-	let animateFormDown = false;
-	let showForm = true;
+	let showIntro = $state(true);
+	let animateForm = $state(false);
+	let showOutro = $state(false);
+	let animateFormDown = $state(false);
+	let showForm = $state(true);
 
 	function nextStep() {
 		if (currentStep < totalSteps - 1) {
@@ -169,7 +197,7 @@
 			const accessToken = session.access_token;
 
 			// Create user in backend
-			const response = await fetch('http://localhost:8000/users/', {
+			const response = await fetch(`${API_BASE_URL}/users/`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -217,6 +245,13 @@
 </script>
 
 <div class="min-h-screen flex flex-col" style="background-color: var(--primary-color);">
+	<!-- Sign Out Button - Top Right -->
+	{#if !loading}
+		<div class="absolute top-4 right-4 z-50">
+			<SignOutButton />
+		</div>
+	{/if}
+
 	<!-- Loading Screen -->
 	{#if loading}
 		<div class="flex-1 flex items-center justify-center">
@@ -236,7 +271,7 @@
 					Answer a few quick questions to help us understand your preferences better.
 				</h1>
 				<button
-					on:click={startForm}
+					onclick={startForm}
 					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
 					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
 				>
@@ -254,7 +289,7 @@
 					Now chat with our AI for a few minutes—it'll learn your interests and vibe to find your most compatible prom match!
 				</h1>
 				<button
-					on:click={beginChat}
+					onclick={beginChat}
 					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
 					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
 				>
@@ -306,7 +341,7 @@
 						<!-- Male Button -->
 						<button
 							type="button"
-							on:click={() => formData.gender = 'male'}
+							onclick={() => formData.gender = 'male'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							class:selected-gender={formData.gender === 'male'}
 							style="border-color: {formData.gender === 'male' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'male' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
@@ -324,7 +359,7 @@
 						<!-- Female Button -->
 						<button
 							type="button"
-							on:click={() => formData.gender = 'female'}
+							onclick={() => formData.gender = 'female'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							class:selected-gender={formData.gender === 'female'}
 							style="border-color: {formData.gender === 'female' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'female' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
@@ -352,7 +387,7 @@
 						<!-- Straight Button -->
 						<button
 							type="button"
-							on:click={() => formData.sexuality = 'straight'}
+							onclick={() => formData.sexuality = 'straight'}
 							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							style="border-color: {formData.sexuality === 'straight' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'straight' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -370,7 +405,7 @@
 						{#if formData.gender === 'male'}
 							<button
 								type="button"
-								on:click={() => formData.sexuality = 'gay'}
+								onclick={() => formData.sexuality = 'gay'}
 								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 								style="border-color: {formData.sexuality === 'gay' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'gay' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 							>
@@ -389,7 +424,7 @@
 						{#if formData.gender === 'female'}
 							<button
 								type="button"
-								on:click={() => formData.sexuality = 'lesbian'}
+								onclick={() => formData.sexuality = 'lesbian'}
 								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 								style="border-color: {formData.sexuality === 'lesbian' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'lesbian' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 							>
@@ -407,7 +442,7 @@
 						<!-- Bisexual Button -->
 						<button
 							type="button"
-							on:click={() => formData.sexuality = 'bisexual'}
+							onclick={() => formData.sexuality = 'bisexual'}
 							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							style="border-color: {formData.sexuality === 'bisexual' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'bisexual' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -434,7 +469,7 @@
 						<!-- Yes Button -->
 						<button
 							type="button"
-							on:click={() => formData.comfortableWithNonStraight = true}
+							onclick={() => formData.comfortableWithNonStraight = true}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
 							style="border-color: {formData.comfortableWithNonStraight === true ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === true ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -451,7 +486,7 @@
 						<!-- No Button -->
 						<button
 							type="button"
-							on:click={() => formData.comfortableWithNonStraight = false}
+							onclick={() => formData.comfortableWithNonStraight = false}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
 							style="border-color: {formData.comfortableWithNonStraight === false ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === false ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -478,7 +513,7 @@
 						<!-- Younger Button -->
 						<button
 							type="button"
-							on:click={() => formData.agePreference = 'younger'}
+							onclick={() => formData.agePreference = 'younger'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							style="border-color: {formData.agePreference === 'younger' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'younger' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -495,7 +530,7 @@
 						<!-- Older Button -->
 						<button
 							type="button"
-							on:click={() => formData.agePreference = 'older'}
+							onclick={() => formData.agePreference = 'older'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							style="border-color: {formData.agePreference === 'older' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'older' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -512,7 +547,7 @@
 						<!-- No Preference Button -->
 						<button
 							type="button"
-							on:click={() => formData.agePreference = 'no-preference'}
+							onclick={() => formData.agePreference = 'no-preference'}
 							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
 							style="border-color: {formData.agePreference === 'no-preference' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'no-preference' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
 						>
@@ -577,7 +612,7 @@
 							pattern="[0-9]{10}"
 							class="w-full px-6 py-4 text-lg rounded-2xl border-2 transition-all duration-200 focus:outline-none text-center font-semibold"
 							style="border-color: {formData.mobileNumber ? 'var(--secondary-color)' : '#e5e7eb'}; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
-							on:input={(e) => {
+							oninput={(e) => {
 								// Only allow digits
 								const target = e.target;
 								if (target && target instanceof HTMLInputElement) {
@@ -610,7 +645,7 @@
 				<!-- Left Arrow Button -->
 				<button
 					type="button"
-					on:click={previousStep}
+					onclick={previousStep}
 					disabled={currentStep === 0}
 					class="transition-all duration-200 bg-transparent border-none p-0 cursor-pointer"
 					class:opacity-30={currentStep === 0}
@@ -628,7 +663,7 @@
 				{#if currentStep < totalSteps - 1}
 					<button
 						type="button"
-						on:click={nextStep}
+						onclick={nextStep}
 						class="transition-all duration-200 hover:opacity-80 bg-transparent border-none p-0 cursor-pointer"
 					>
 						<img 
@@ -640,7 +675,7 @@
 				{:else}
 					<button 
 						type="button"
-						on:click={handleSubmit}
+						onclick={handleSubmit}
 						disabled={submitting}
 						class="py-3 px-8 rounded-full text-white font-semibold text-base hover:opacity-90 transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
 						style="background-color: var(--secondary-color); font-family: 'Nunito', sans-serif;"

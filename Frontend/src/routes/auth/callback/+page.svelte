@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
 
@@ -10,9 +9,7 @@
 
 	onMount(async () => {
 		const urlParams = new URLSearchParams(window.location.search);
-		const access_token = urlParams.get('access_token');
-		const refresh_token = urlParams.get('refresh_token');
-		const expires_at = urlParams.get('expires_at');
+		const success = urlParams.get('success');
 		const errorParam = urlParams.get('error');
 
 		if (errorParam) {
@@ -21,20 +18,13 @@
 			return;
 		}
 
-		if (access_token && refresh_token && expires_at) {
+		if (success === 'true') {
 			try {
-				// Fetch user info
-				const data = await api.auth.getUser(access_token);
+				// Tokens are now in httpOnly cookies, just load the session
+				// Backend will read the cookie and return user info
+				await authStore.loadSession();
 
-				// Store session
-				authStore.setSession({
-					access_token,
-					refresh_token,
-					expires_at: parseInt(expires_at),
-					user: data.user,
-				});
-
-				// Clear URL parameters by replacing history
+				// Clear URL parameters
 				window.history.replaceState({}, '', '/auth/callback');
 
 				// Redirect to user form
@@ -45,7 +35,7 @@
 				loading = false;
 			}
 		} else {
-			error = 'Missing authentication parameters';
+			error = 'Authentication failed';
 			loading = false;
 		}
 	});
