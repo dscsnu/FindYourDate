@@ -165,7 +165,7 @@ Return ONLY the question text - no greetings, no introductions, just the questio
     try:
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-5-mini",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}

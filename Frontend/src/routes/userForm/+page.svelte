@@ -65,7 +65,6 @@
 	let formData = $state({
 		gender: '',
 		sexuality: '',
-		comfortableWithNonStraight: null,
 		agePreference: '',
 		age: 21,
 		mobileNumber: '',
@@ -74,7 +73,7 @@
 	
 	// Current step tracker
 	let currentStep = $state(0);
-	const totalSteps = 6; // Updated to 6 steps
+	const totalSteps = 5; // Updated to 5 steps (removed bisexual preference question)
 
 	// Form animation state
 	let showIntro = $state(true);
@@ -86,24 +85,14 @@
 	function nextStep() {
 		if (currentStep < totalSteps - 1) {
 			if (validateCurrentStep()) {
-				// Skip step 2 (comfortableWithNonStraight) if user is not straight
-				if (currentStep === 1 && formData.sexuality !== 'straight') {
-					currentStep += 2; // Skip to age preference question
-				} else {
-					currentStep++;
-				}
+				currentStep++;
 			}
 		}
 	}
 
 	function previousStep() {
 		if (currentStep > 0) {
-			// Skip step 2 (comfortableWithNonStraight) if user is not straight
-			if (currentStep === 3 && formData.sexuality !== 'straight') {
-				currentStep -= 2; // Go back to sexuality question
-			} else {
-				currentStep--;
-			}
+			currentStep--;
 		}
 	}
 
@@ -122,31 +111,22 @@
 				}
 				return true;
 			case 2:
-				// Only validate if user is straight
-				if (formData.sexuality === 'straight') {
-					if (formData.comfortableWithNonStraight === null) {
-						alert('Please answer whether you are comfortable with a non-straight partner');
-						return false;
-					}
-				}
-				return true;
-			case 3:
 				if (!formData.agePreference) {
 					alert('Please select your age preference');
 					return false;
 				}
 				return true;
-			case 4:
+			case 3:
 				if (!formData.age) {
 					alert('Please select your age');
 					return false;
 				}
-				if (parseInt(formData.age) < 17 || parseInt(formData.age) > 25) {
+				if (formData.age < 17 || formData.age > 25) {
 					alert('Please select an age between 17 and 25');
 					return false;
 				}
 				return true;
-			case 5:
+			case 4:
 				if (!formData.mobileNumber) {
 					alert('Please enter your mobile number');
 					return false;
@@ -188,8 +168,8 @@
 				phone: formData.mobileNumber,
 				gender: formData.gender === 'male' ? 'M' : 'W',
 				orientation: formData.sexuality,
-				age: parseInt(formData.age),
-				accept_non_straight: formData.sexuality === 'straight' ? (formData.comfortableWithNonStraight || false) : true,
+				age: formData.age,
+				accept_non_straight: true, // Always accept bisexual partners
 				age_preference: formData.agePreference === 'older' ? 1 : (formData.agePreference === 'younger' ? -1 : 0)
 			};
 
@@ -460,52 +440,8 @@
 				</div>
 			{/if}
 
-			<!-- Step 2: Comfortable with Non-Straight Partner (only for straight users) -->
-			{#if currentStep === 2 && formData.sexuality === 'straight'}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						Would you be open to being matched with someone who is bisexual?
-					</h2>
-					<div class="flex gap-6 justify-center">
-						<!-- Yes Button -->
-						<button
-							type="button"
-							onclick={() => formData.comfortableWithNonStraight = true}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
-							style="border-color: {formData.comfortableWithNonStraight === true ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === true ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/thumbs-up-icon.png" 
-								alt="Yes" 
-								class="w-24 h-24 object-contain"
-							/>
-							<span class="text-base font-semibold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Yes, I'm open to it
-							</span>
-						</button>
-
-						<!-- No Button -->
-						<button
-							type="button"
-							onclick={() => formData.comfortableWithNonStraight = false}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105 w-48"
-							style="border-color: {formData.comfortableWithNonStraight === false ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.comfortableWithNonStraight === false ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/thumbs-down-icon.png" 
-								alt="No" 
-								class="w-24 h-24 object-contain"
-							/>
-							<span class="text-base font-semibold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								No, I prefer a straight partner
-							</span>
-						</button>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Step 3: Age Preference -->
-			{#if currentStep === 3}
+			<!-- Step 2: Age Preference -->
+			{#if currentStep === 2}
 				<div class="space-y-6 flex-1 flex flex-col justify-center">
 					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 						Would you prefer to be matched with someone older or younger than you?
@@ -565,8 +501,8 @@
 				</div>
 			{/if}
 
-			<!-- Step 4: Age -->
-			{#if currentStep === 4}
+			<!-- Step 3: Age -->
+			{#if currentStep === 3}
 				<div class="space-y-6 flex-1 flex flex-col justify-center">
 					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 						What is your age?
@@ -598,8 +534,8 @@
 				</div>
 			{/if}
 
-			<!-- Step 5: Mobile Number -->
-			{#if currentStep === 5}
+			<!-- Step 4: Mobile Number -->
+			{#if currentStep === 4}
 				<div class="space-y-6 flex-1 flex flex-col justify-center">
 					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 						Please enter your mobile number so that your prom match can reach you?
