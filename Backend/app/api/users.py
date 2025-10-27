@@ -32,7 +32,7 @@ class CreateUserRequest(BaseModel):
     phone: str = Field(..., description="User's phone number")
     gender: str = Field(..., description="User's gender ('M', 'W')")
     orientation: str = Field(..., description="User's sexual orientation ('straight', 'gay', 'lesbian', 'bi')")
-    age: int = Field(..., gt=17, lt=100, description="User's age (18-99)")
+    age: int = Field(..., gt=16, lt=100, description="User's age (17-99)")
     accept_non_straight: bool = Field(default=True, description="Accept matches with non-straight partners")
     age_preference: Optional[int] = Field(default=0, description="1 for higher/same, 0 for no preference, -1 for lower/same")
 
