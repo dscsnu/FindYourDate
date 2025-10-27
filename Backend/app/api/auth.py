@@ -33,27 +33,68 @@ class CallbackRequest(BaseModel):
     code: str
 
 
+class StoreSessionRequest(BaseModel):
+    access_token: str
+    refresh_token: str
+
+
+@router.post('/store-session')
+async def store_session(request: StoreSessionRequest, response: Response):
+    """
+    Store session tokens from frontend OAuth callback as httpOnly cookies.
+    This is called after the frontend receives tokens from Supabase OAuth.
+    """
+    try:
+        # Verify the access token is valid by getting user info
+        user_response = supabase.auth.get_user(request.access_token)
+        
+        if not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid access token")
+        
+        # Determine if we're in production
+        is_production = frontend_url.startswith("https://")
+        
+        # Store tokens in httpOnly cookies
+        response.set_cookie(
+            key="access_token",
+            value=request.access_token,
+            httponly=True,
+            secure=is_production,
+            samesite="none" if is_production else "lax",
+            max_age=3600,  # 1 hour
+            path="/"
+        )
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=request.refresh_token,
+            httponly=True,
+            secure=is_production,
+            samesite="none" if is_production else "lax",
+            max_age=60 * 60 * 24 * 30,  # 30 days
+            path="/"
+        )
+        
+        return {"message": "Session stored successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to store session: {str(e)}")
+
+
 @router.get('/google/login')
 async def google_login(redirect_to: Optional[str] = None):
     """
     Initiates Google OAuth flow.
     Returns the OAuth URL that the frontend should redirect to.
+    Frontend will handle the callback to maintain PKCE flow.
     """
     try:
-        # Use environment variable for backend URL, with proper fallback
-        backend_url = os.environ.get('BACKEND_URL', 'http://localhost:1386')
-        callback_url = f"{backend_url}/auth/google/callback"
-        
-        # Determine final redirect destination
-        final_redirect = redirect_to or f"{frontend_url}/auth/callback"
+        # Frontend will handle the callback to maintain PKCE verifier
+        callback_url = f"{frontend_url}/auth/callback"
         
         response = supabase.auth.sign_in_with_oauth({
             "provider": "google",
             "options": {
-                "redirect_to": callback_url,
-                "query_params": {
-                    "redirect_to": final_redirect
-                }
+                "redirect_to": callback_url
             }
         })
 

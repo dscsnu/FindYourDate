@@ -2,40 +2,68 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
-	import { api } from '$lib/api';
+	import { browser } from '$app/environment';
 
 	let error = $state<string | null>(null);
 	let loading = $state(true);
 
 	onMount(async () => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const success = urlParams.get('success');
-		const errorParam = urlParams.get('error');
+		if (!browser) return;
 
-		if (errorParam) {
-			error = errorParam;
-			loading = false;
-			return;
-		}
+		try {
+			// Get the full URL hash and search params
+			const hashParams = new URLSearchParams(window.location.hash.substring(1));
+			const searchParams = new URLSearchParams(window.location.search);
+			
+			// Check for error in either hash or search params
+			const errorParam = hashParams.get('error') || searchParams.get('error');
+			const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+			
+			if (errorParam) {
+				console.error('OAuth error:', errorParam, errorDescription);
+				error = errorDescription || errorParam;
+				loading = false;
+				return;
+			}
 
-		if (success === 'true') {
-			try {
-				// Tokens are now in httpOnly cookies, just load the session
-				// Backend will read the cookie and return user info
+			// Get access_token from hash (Supabase implicit flow)
+			const accessToken = hashParams.get('access_token');
+			const refreshToken = hashParams.get('refresh_token');
+			
+			if (accessToken) {
+				// Store tokens in backend as httpOnly cookies
+				const API_BASE_URL = import.meta.env.PUBLIC_API_URL || 'http://localhost:8000';
+				const response = await fetch(`${API_BASE_URL}/auth/store-session`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					credentials: 'include',
+					body: JSON.stringify({
+						access_token: accessToken,
+						refresh_token: refreshToken
+					})
+				});
+
+				if (!response.ok) {
+					throw new Error('Failed to store session');
+				}
+
+				// Load session into store
 				await authStore.loadSession();
 
-				// Clear URL parameters
+				// Clear URL
 				window.history.replaceState({}, '', '/auth/callback');
 
 				// Redirect to user form
 				await goto('/userForm');
-			} catch (err) {
-				console.error('Auth error:', err);
-				error = err instanceof Error ? err.message : 'Authentication failed';
+			} else {
+				error = 'No access token received';
 				loading = false;
 			}
-		} else {
-			error = 'Authentication failed';
+		} catch (err) {
+			console.error('Auth error:', err);
+			error = err instanceof Error ? err.message : 'Authentication failed';
 			loading = false;
 		}
 	});
