@@ -40,14 +40,19 @@ async def google_login(redirect_to: Optional[str] = None):
     Returns the OAuth URL that the frontend should redirect to.
     """
     try:
-        callback_url = f"{os.environ.get('BACKEND_URL', 'http://localhost:8000')}/auth/google/callback"
+        # Use environment variable for backend URL, with proper fallback
+        backend_url = os.environ.get('BACKEND_URL', 'http://localhost:1386')
+        callback_url = f"{backend_url}/auth/google/callback"
+        
+        # Determine final redirect destination
+        final_redirect = redirect_to or f"{frontend_url}/auth/callback"
         
         response = supabase.auth.sign_in_with_oauth({
             "provider": "google",
             "options": {
                 "redirect_to": callback_url,
                 "query_params": {
-                    "redirect_to": redirect_to or f"{frontend_url}/userForm"
+                    "redirect_to": final_redirect
                 }
             }
         })
