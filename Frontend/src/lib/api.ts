@@ -6,6 +6,8 @@ const API_BASE_URL = PUBLIC_API_URL || 'http://localhost:8000';
 export const api = {
 	// Auth endpoints
 	auth: {
+		getBaseUrl: () => API_BASE_URL,
+		
 		googleLogin: async () => {
 			const response = await fetch(`${API_BASE_URL}/auth/google/login`);
 			if (!response.ok) throw new Error('Failed to get Google auth URL');
