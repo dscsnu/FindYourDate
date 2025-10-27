@@ -65,7 +65,6 @@
 	let formData = $state({
 		gender: '',
 		sexuality: '',
-		comfortableWithNonStraight: null,
 		agePreference: '',
 		age: 21,
 		mobileNumber: '',
@@ -74,7 +73,7 @@
 	
 	// Current step tracker
 	let currentStep = $state(0);
-	const totalSteps = 6; // Updated to 6 steps
+	const totalSteps = 5; // Updated to 5 steps (removed bisexual preference question)
 
 	// Form animation state
 	let showIntro = $state(true);
