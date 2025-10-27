@@ -23,6 +23,48 @@
 		session = value;
 	});
 
+	// Load chat from localStorage
+	function loadChatFromStorage() {
+		if (typeof window === 'undefined') return;
+		
+		const savedChat = localStorage.getItem(`chat_${userEmail}`);
+		if (savedChat) {
+			try {
+				const parsed = JSON.parse(savedChat);
+				chatHistory = parsed.chatHistory || [];
+				messages = parsed.messages || [];
+				messageIdCounter = parsed.messageIdCounter || 1;
+				currentQuestion = parsed.currentQuestion || null;
+				questionNumber = parsed.questionNumber || 0;
+				isComplete = parsed.isComplete || false;
+			} catch (e) {
+				console.error('Error loading chat from storage:', e);
+			}
+		}
+	}
+
+	// Save chat to localStorage
+	function saveChatToStorage() {
+		if (typeof window === 'undefined' || !userEmail) return;
+		
+		const chatData = {
+			chatHistory,
+			messages,
+			messageIdCounter,
+			currentQuestion,
+			questionNumber,
+			isComplete
+		};
+		localStorage.setItem(`chat_${userEmail}`, JSON.stringify(chatData));
+	}
+
+	// Auto-save when chat data changes
+	$effect(() => {
+		if (userEmail && (messages.length > 0 || chatHistory.length > 0)) {
+			saveChatToStorage();
+		}
+	});
+
 	// Auto-scroll to bottom when messages change
 	$effect(() => {
 		if (messages.length > 0 && messagesContainer) {
@@ -32,10 +74,34 @@
 		}
 	});
 
+	// Restart chat function
+	function restartChat() {
+		if (!confirm('Are you sure you want to restart the chat? All progress will be lost.')) {
+			return;
+		}
+		
+		// Clear localStorage
+		if (typeof window !== 'undefined' && userEmail) {
+			localStorage.removeItem(`chat_${userEmail}`);
+		}
+		
+		// Reset all state
+		chatHistory = [];
+		messages = [];
+		messageIdCounter = 1;
+		currentQuestion = null;
+		questionNumber = 0;
+		isComplete = false;
+		newMessage = '';
+		
+		// Fetch first question again
+		fetchNextQuestion();
+	}
+
 	onMount(async () => {
 		// Load session if exists
 		await authStore.loadSession();
-		
+
 		// Check if user is authenticated
 		const currentSession = await new Promise(resolve => {
 			const unsubscribe = authStore.subscribe(value => {
@@ -80,8 +146,13 @@
 
 		loading = false;
 
-		// Fetch first question
-		await fetchNextQuestion();
+		// Load saved chat from localStorage
+		loadChatFromStorage();
+
+		// Fetch first question only if no saved chat
+		if (messages.length === 0 && !isComplete) {
+			await fetchNextQuestion();
+		}
 	});
 
 	async function fetchNextQuestion() {
@@ -233,6 +304,16 @@
 					<div class="text-white text-sm sm:text-lg font-semibold whitespace-nowrap" style="font-family: 'Nunito', sans-serif;">
 						{questionNumber}/10
 					</div>
+				{/if}
+				{#if messages.length > 0 && !isComplete}
+					<button
+						onclick={restartChat}
+						class="text-white text-xs sm:text-sm font-medium px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-white hover:bg-white hover:text-[var(--primary-color)] transition-all duration-200 whitespace-nowrap"
+						style="font-family: 'Nunito', sans-serif;"
+						title="Restart chat"
+					>
+						Restart
+					</button>
 				{/if}
 				<SignOutButton />
 			</div>
