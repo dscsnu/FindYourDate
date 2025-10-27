@@ -312,7 +312,8 @@
 							<span class="text-2xl font-bold leading-none">{questionNumber}/10</span>
 						</div>
 					</div>
-				{/if}
+				</div>
+			{/if}
 				{#if messages.length > 0 && !isComplete}
 					<button
 						onclick={restartChat}
@@ -325,7 +326,7 @@
 				{/if}
 				<SignOutButton />
 			</div>
-		</div>
+		
 		
 		<!-- prog bar -->
 		{#if questionNumber > 0 && !isComplete}
