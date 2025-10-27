@@ -7,7 +7,7 @@ from app.models.user_model import User
 from app.db.database import SessionLocal
 from app.db.qdrant_client import qdrant, get_embedding
 
-router = APIRouter(prefix="/status", tags=["status"])
+router = APIRouter(tags=["status"])
 
 # Initialize Supabase client
 url = os.environ.get("SUPABASE_URL")
