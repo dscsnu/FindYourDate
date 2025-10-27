@@ -38,18 +38,22 @@ async def google_login(redirect_to: Optional[str] = None):
     """
     Initiates Google OAuth flow.
     Returns the OAuth URL that the frontend should redirect to.
-    Frontend will handle the callback directly to maintain PKCE flow.
     """
     try:
-        # Frontend will handle the callback directly
+        # Use environment variable for backend URL, with proper fallback
+        backend_url = os.environ.get('BACKEND_URL', 'http://localhost:1386')
+        callback_url = f"{backend_url}/auth/google/callback"
+        
+        # Determine final redirect destination
         final_redirect = redirect_to or f"{frontend_url}/auth/callback"
         
         response = supabase.auth.sign_in_with_oauth({
             "provider": "google",
             "options": {
-                # Redirect directly to frontend to preserve PKCE
-                "redirect_to": final_redirect,
-                "skip_browser_redirect": True
+                "redirect_to": callback_url,
+                "query_params": {
+                    "redirect_to": final_redirect
+                }
             }
         })
 
@@ -120,56 +124,31 @@ async def google_callback(
 
 
 @router.post('/session/exchange')
-async def exchange_session(callback_request: CallbackRequest, response: Response):
+async def exchange_session(callback_request: CallbackRequest):
     """
     Exchange OAuth code for session tokens.
-    Sets httpOnly cookies for security.
-    Frontend uses this to complete the PKCE flow.
+    Used when frontend handles the callback directly.
     """
     try:
-        auth_response = supabase.auth.exchange_code_for_session({
+        response = supabase.auth.exchange_code_for_session({
             "auth_code": callback_request.code
         })
         
-        if not auth_response.session:
+        if not response.session:
             raise HTTPException(status_code=401, detail="Failed to exchange code for session")
         
-        # Determine if we're in production
-        is_production = frontend_url.startswith("https://")
-        
-        # Set httpOnly cookies for security
-        response.set_cookie(
-            key="access_token",
-            value=auth_response.session.access_token,
-            httponly=True,
-            secure=is_production,
-            samesite="none" if is_production else "lax",
-            max_age=auth_response.session.expires_in,
-            path="/"
-        )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=auth_response.session.refresh_token,
-            httponly=True,
-            secure=is_production,
-            samesite="none" if is_production else "lax",
-            max_age=60 * 60 * 24 * 30,  # 30 days
-            path="/"
-        )
-        
         return {
-            "access_token": auth_response.session.access_token,
-            "refresh_token": auth_response.session.refresh_token,
-            "expires_in": auth_response.session.expires_in,
-            "expires_at": auth_response.session.expires_at,
-            "token_type": auth_response.session.token_type,
+            "access_token": response.session.access_token,
+            "refresh_token": response.session.refresh_token,
+            "expires_in": response.session.expires_in,
+            "expires_at": response.session.expires_at,
+            "token_type": response.session.token_type,
             "user": {
-                "id": auth_response.user.id,
-                "email": auth_response.user.email,
-                "user_metadata": auth_response.user.user_metadata,
-                "app_metadata": auth_response.user.app_metadata,
-                "created_at": auth_response.user.created_at
+                "id": response.user.id,
+                "email": response.user.email,
+                "user_metadata": response.user.user_metadata,
+                "app_metadata": response.user.app_metadata,
+                "created_at": response.user.created_at
             }
         }
     except Exception as e:
