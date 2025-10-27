@@ -17,11 +17,14 @@
     let heartInterval = null;
     let displayedName = $state('');
     let showAge = $state(false);
-    let loading = $state(true);
+    let showPhoneNumber = $state(false);
+    let showRematchButton = $state(false);
+    let loading = $state(false); // Disabled for testing
     
     // TODO: Replace with actual matched user data from your backend/state
     let matchedUserName = 'Sarah';
     let matchedUserAge = 24;
+    let matchedUserPhoneNumber = '9876543210';
 
     function createHeart() {
       const heart = {
@@ -63,6 +66,7 @@
     function typewriterEffect() {
       displayedName = '';
       showAge = false;
+      showPhoneNumber = false;
       let index = 0;
       
       const typingInterval = setInterval(() => {
@@ -74,9 +78,17 @@
           // Show age after name is fully typed
           setTimeout(() => {
             showAge = true;
+            // Show phone number after age is shown
+            setTimeout(() => {
+              showPhoneNumber = true;
+              // Show rematch button after phone number is shown
+              setTimeout(() => {
+                showRematchButton = true;
+              }, 300);
+            }, 500);
           }, 300);
         }
-      }, 400); // Type one character every 200ms
+      }, 400); // Type one character every 400ms
     }
 
     function playAnalyzingAnimation() {
@@ -92,6 +104,15 @@
       currentText = 'WE HAVE FOUND YOU A MATCH!';
       showDots = false;
       showButton = true;
+      loadAnimation();
+    }
+
+    function playSadAnimation() {
+      currentAnimation = '/animations/heart-sleeping.riv';
+      currentText = "The match ratio wasn't in your favor, but don't worry, love might still strike somewhere unexpected!";
+      showDots = false;
+      showButton = false;
+      showRematchButton = true;
       loadAnimation();
     }
 
@@ -180,6 +201,14 @@
     });
 
     $effect(() => {
+      if (!canvas) return;
+
+      // Play animation for testing
+      setTimeout(() => {
+        playMatchFoundAnimation();
+      }, 0);
+      // Change this mf
+
       return () => {
         if (riveInstance) {
           riveInstance.cleanup();
@@ -240,6 +269,12 @@
           {matchedUserAge} years old
         </p>
       {/if}
+      {#if showPhoneNumber}
+        <div class="phone-container fade-in" style="background-color: var(--primary-color);">
+          <img src="/icons/phone-icon.png" alt="phone" class="phone-icon" />
+          <span class="phone-number"><a class="no-decor" href="https://wa.me/+91{matchedUserPhoneNumber}">{matchedUserPhoneNumber}</a></span>
+        </div>
+      {/if}
     </div>
   {:else}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
@@ -265,6 +300,18 @@
           </button>
         {/if}
       </div>
+    </div>
+  {/if}
+
+  <!-- Rematch Button - Bottom Right -->
+  {#if showRematchButton}
+    <div class="absolute bottom-6 right-6 z-50">
+      <button 
+        class="rematch-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer"
+        style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
+      >
+        Rematch Me 💘
+      </button>
     </div>
   {/if}
 </div>
@@ -338,6 +385,27 @@
     }
   }
 
+  .phone-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    border-radius: 50px;
+  }
+
+  .phone-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) invert(1);
+  }
+
+  .phone-number {
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
   .dots::after {
     content: '';
     animation: dots 1.5s steps(4, end) infinite;
@@ -376,6 +444,15 @@
     50% {
       transform: translateY(10px);
     }
+  }
+
+  .rematch-button {
+    transition: all 0.3s ease;
+  }
+
+  .rematch-button:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
   }
 
   @media (max-width: 550px) {
