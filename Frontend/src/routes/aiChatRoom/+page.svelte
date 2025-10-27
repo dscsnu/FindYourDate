@@ -222,14 +222,16 @@
 <div class="chat-container" style="background-color: var(--primary-color);">
 	<!-- Chat Header -->
 	<div class="chat-header" style="background-color: var(--primary-color); height: 80px;">
-		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between h-full">
-			<h1 class="text-white text-2xl font-bold" style="font-family: 'Nunito', sans-serif;">
-				Find Your Date
-			</h1>
-			<div class="flex items-center gap-4">
+		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between h-full gap-2">
+			<img 
+				src="/images/logo.png" 
+				alt="Find Your Date" 
+				class="h-12 w-auto object-contain shrink-0"
+			/>
+			<div class="flex items-center gap-2 sm:gap-4 shrink-0">
 				{#if questionNumber > 0 && !isComplete}
-					<div class="text-white text-lg font-semibold" style="font-family: 'Nunito', sans-serif;">
-						Question {questionNumber}/10
+					<div class="text-white text-sm sm:text-lg font-semibold whitespace-nowrap" style="font-family: 'Nunito', sans-serif;">
+						{questionNumber}/10
 					</div>
 				{/if}
 				<SignOutButton />
