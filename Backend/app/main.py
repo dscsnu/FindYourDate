@@ -36,11 +36,16 @@ app.add_middleware(
 )
 
 # Include routers without additional prefix (prefix already in router definition)
-app.include_router(auth.router, tags=["Authentication"])
-app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(chat.router, prefix="/chat", tags=["Chat"])
-app.include_router(status.router, tags=["Status"])
+app.include_router(auth.router, prefix="/api", tags=["Authentication"])
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+app.include_router(status.router, prefix="/api/status", tags=["Status"])
 
 @app.get("/")
 def root():
     return {"message": "FindYourDate backend is running."}
+
+# Add OPTIONS handler for all routes to handle CORS preflight requests
+@app.options("/{full_path:path}")
+async def options_handler():
+    return {}
