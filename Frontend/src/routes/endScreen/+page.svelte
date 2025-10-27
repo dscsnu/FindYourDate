@@ -293,6 +293,11 @@
           <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
             {currentText}{#if showDots}<span class="dots"></span>{/if}
           </p>
+          {#if showDots}
+            <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+              It might take a day once registrations are done to get your match
+            </p>
+          {/if}
         {/if}
         {#if showButton}
           <button 
