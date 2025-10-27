@@ -221,22 +221,38 @@
 {:else}
 <div class="chat-container" style="background-color: var(--primary-color);">
 	<!-- Chat Header -->
-	<div class="chat-header" style="background-color: var(--primary-color); height: 80px;">
-		<div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between h-full gap-2">
+	<div class="chat-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, #c54285 100%);">
+		<div class="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
 			<img 
 				src="/images/logo.png" 
 				alt="Find Your Date" 
-				class="h-12 w-auto object-contain shrink-0"
+				class="h-14 w-auto object-contain shrink-0"
 			/>
-			<div class="flex items-center gap-2 sm:gap-4 shrink-0">
-				{#if questionNumber > 0 && !isComplete}
-					<div class="text-white text-sm sm:text-lg font-semibold whitespace-nowrap" style="font-family: 'Nunito', sans-serif;">
-						{questionNumber}/10
+			
+			<!-- q counter badge - more prominent -->
+			{#if questionNumber > 0 && !isComplete}
+				<div class="question-badge">
+					<div class="flex items-center gap-2">
+						<svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<div class="flex flex-col items-start">
+							<span class="text-xs opacity-90 leading-none">Question</span>
+							<span class="text-2xl font-bold leading-none">{questionNumber}/10</span>
+						</div>
 					</div>
-				{/if}
-				<SignOutButton />
-			</div>
+				</div>
+			{/if}
+			
+			<SignOutButton />
 		</div>
+		
+		<!-- prog bar -->
+		{#if questionNumber > 0 && !isComplete}
+			<div class="progress-container">
+				<div class="progress-bar" style="width: {(questionNumber / 10) * 100}%"></div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Chat Messages Container -->
@@ -328,7 +344,43 @@
 		position: sticky;
 		top: 0;
 		z-index: 100;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	}
+
+	/* q badge styling */
+	.question-badge {
+		background: rgba(255, 255, 255, 0.25);
+		backdrop-filter: blur(10px);
+		border: 2px solid rgba(255, 255, 255, 0.4);
+		border-radius: 16px;
+		padding: 0.75rem 1.25rem;
+		color: white;
+		font-family: 'Nunito', sans-serif;
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+		transition: all 0.3s ease;
+	}
+
+	.question-badge:hover {
+		background: rgba(255, 255, 255, 0.35);
+		transform: translateY(-2px);
+		box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+	}
+
+	/* prog bar container */
+	.progress-container {
+		width: 100%;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.2);
+		position: relative;
+		overflow: hidden;
+	}
+
+	/* prog bar fill */
+	.progress-bar {
+		height: 100%;
+		background: linear-gradient(90deg, #ffffff 0%, #ffe6f0 100%);
+		transition: width 0.5s ease-in-out;
+		box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 	}
 
 	.chat-messages {

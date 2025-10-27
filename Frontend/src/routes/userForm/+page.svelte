@@ -319,11 +319,12 @@
 	{#if !showIntro && showForm}
 	<div class="flex-1 flex flex-col items-end lg:items-center justify-end lg:justify-center">
 		<!-- Mobile Placeholder Image - Only visible on mobile, above the card -->
-		<div class="lg:hidden w-full flex-1 flex items-center justify-center px-4 pb-4">
+		<!-- rm flex-1 to avoid pushing btns down -->
+		<div class="lg:hidden w-full flex items-center justify-center px-4 pb-4">
 			<img 
 				src="/images/logo.png" 
 				alt="Placeholder" 
-				class="h-full max-h-64 w-auto object-contain"
+				class="max-h-48 w-auto object-contain"
 			/>
 		</div>
 		
