@@ -130,6 +130,8 @@
       });
     }
 
+    /*
+
     onMount(async () => {
         await authStore.loadSession();
         const currentSession = await new Promise(resolve => {
@@ -178,6 +180,8 @@
             playAnalyzingAnimation();
         }, 200);
     });
+
+    */
 
     $effect(() => {
       return () => {
