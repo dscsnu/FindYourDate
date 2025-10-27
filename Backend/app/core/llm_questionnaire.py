@@ -151,6 +151,7 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         - For personality (1-5): values, traits, communication, goals
         - For social (6-10): activities, hobbies, lifestyle, energy levels
         - Dont ask repetitive questions, explore more areas, even if its not related to previous answers
+        - DO NOT ASK SIMILAR QUESTIONS, EXPLORE DIFFERENT ASPECTS OF THEIR PERSONALITY AND LIFESTYLE
         """
         
         user_prompt = f"""Generate question #{current_count + 1} about {category_description}.
@@ -162,7 +163,7 @@ Return ONLY the question text - no greetings, no introductions, just the questio
     try:
         # Call OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
