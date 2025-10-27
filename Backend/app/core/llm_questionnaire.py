@@ -129,6 +129,7 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", etc.
+        - Its for finding them a similar prom date, so not too serious questions
         - Keep questions SHORT (under 15 words)
         - Keep content appropriate for ages 16+ (PG-16)
         - Make it casual and natural
@@ -145,6 +146,7 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
         - Keep questions SHORT (under 40 words)
+        - Its for finding them a similar prom date, so not too serious questions
         - Keep content appropriate - avoid sexual/controversial topics, divert topic in case
         - Try to build on their previous answers(but its not necessary) and on the context(personality/social) naturally
         - Avoid yes/no questions
