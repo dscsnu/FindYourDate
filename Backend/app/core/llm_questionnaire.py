@@ -125,40 +125,38 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
     # Create LLM prompt
     if current_count == 0:
         # First question
-        system_prompt = """You are a dating app questionnaire assistant. Generate an engaging, friendly first question 
-        about the user's personality and values. Keep it open-ended but specific. Make it feel natural and conversational.
-        Focus on: personality, core values, what matters most to them in life."""
+        system_prompt = """You are a dating app questionnaire assistant for high school/college students. Generate a SHORT, friendly question about personality and values. 
         
-        user_prompt = "Generate the first question for a new user on a dating app. Make it about their core personality or values."
+        CRITICAL RULES:
+        - Return ONLY the question - NO introductions like "Sure, here's", "Here is", etc.
+        - Keep questions SHORT (under 15 words)
+        - Keep content appropriate for ages 16+ (PG-16)
+        - Make it casual and natural
+        - Avoid anything romantic/sexual"""
+        
+        user_prompt = "Generate a short first question about their personality or values. Just the question, nothing else."
     
     else:
         # Follow-up questions
-        system_prompt = f"""You are a dating app questionnaire assistant. Generate personalized follow-up questions 
-        based on the user's previous answers. The questions will be used to create embeddings for matching via cosine similarity.
+        system_prompt = f"""You are a dating app questionnaire assistant for high school/college students. Generate SHORT, personalized questions.
 
-        Current focus area: {category_description}
+        Current focus: {category_description}
         
-        Rules:
-        - Ask ONE clear, specific question
-        - Make it conversational and natural
-        - Build on their previous answers when relevant
-        - Keep questions focused on the current category
-        - Avoid yes/no questions - encourage detailed responses
-        - For personality questions (1-5): Focus on values, emotional traits, relationship expectations, communication style
-        - For social questions (6-10): Focus on activities, energy levels, social preferences, lifestyle, hobbies
+        CRITICAL RULES:
+        - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
+        - Keep questions SHORT (under 15 words)
+        - Keep content appropriate - avoid sexual/controversial topics, divert topic in case
+        - Build on their previous answers and on the context(personality/social) naturally
+        - Avoid yes/no questions
+        - For personality (1-5): values, traits, communication, goals
+        - For social (6-10): activities, hobbies, lifestyle, energy levels
         """
         
-        user_prompt = f"""Based on this conversation, generate question #{current_count + 1} focused on {category_description}.
+        user_prompt = f"""Generate question #{current_count + 1} about {category_description}.
 
 {conversation_context}
 
-Generate a personalized follow-up question that:
-1. Builds naturally from their previous answers
-2. Focuses on {category_description}
-3. Helps understand their compatibility with potential matches
-4. Encourages them to share meaningful details
-
-Return ONLY the question text, nothing else."""
+Return ONLY the question text - no greetings, no introductions, just the question."""
     
     try:
         # Call OpenAI API
