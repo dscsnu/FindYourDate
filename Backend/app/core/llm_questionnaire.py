@@ -132,7 +132,7 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         - Keep questions SHORT (under 15 words)
         - Keep content appropriate for ages 16+ (PG-16)
         - Make it casual and natural
-        - Avoid anything romantic/sexual"""
+        - Avoid anything sexual"""
         
         user_prompt = "Generate a short first question about their personality or values. Just the question, nothing else."
     
@@ -144,12 +144,13 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
-        - Keep questions SHORT (under 15 words)
+        - Keep questions SHORT (under 40 words)
         - Keep content appropriate - avoid sexual/controversial topics, divert topic in case
-        - Build on their previous answers and on the context(personality/social) naturally
+        - Try to build on their previous answers(but its not necessary) and on the context(personality/social) naturally
         - Avoid yes/no questions
         - For personality (1-5): values, traits, communication, goals
         - For social (6-10): activities, hobbies, lifestyle, energy levels
+        - Dont ask repetitive questions, explore more areas, even if its not related to previous answers
         """
         
         user_prompt = f"""Generate question #{current_count + 1} about {category_description}.

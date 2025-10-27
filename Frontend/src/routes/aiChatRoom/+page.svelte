@@ -16,10 +16,20 @@
 	let isComplete = $state(false);
 	let currentQuestion = $state(null);
 	let questionNumber = $state(0);
+	let messagesContainer = $state(null);
 
 	// Subscribe to auth store
 	authStore.subscribe(value => {
 		session = value;
+	});
+
+	// Auto-scroll to bottom when messages change
+	$effect(() => {
+		if (messages.length > 0 && messagesContainer) {
+			setTimeout(() => {
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			}, 100);
+		}
 	});
 
 	onMount(async () => {
@@ -228,7 +238,7 @@
 	</div>
 
 	<!-- Chat Messages Container -->
-	<div class="chat-messages px-4 py-6" style="background: white; border-radius: 20px 20px 0 0;">
+	<div bind:this={messagesContainer} class="chat-messages px-4 py-6" style="background: white; border-radius: 20px 20px 0 0;">
 		<div class="max-w-5xl mx-auto space-y-4">
 			{#each messages as message (message.id)}
 				<div class="flex {message.sender === 'user' ? 'justify-end' : 'justify-start'}">
@@ -304,13 +314,19 @@
 <style>
 	.chat-container {
 		height: 100vh;
+		height: 100dvh; /* Use dynamic viewport height for mobile keyboards */
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
+		position: relative;
 	}
 
 	.chat-header {
 		flex-shrink: 0;
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	}
 
 	.chat-messages {
@@ -318,6 +334,7 @@
 		overflow-y: auto;
 		scrollbar-width: thin;
 		scrollbar-color: var(--primary-color) transparent;
+		min-height: 0; /* Important for flex scrolling */
 	}
 	
 	.chat-messages::-webkit-scrollbar {
@@ -335,6 +352,9 @@
 
 	.chat-input {
 		flex-shrink: 0;
+		position: sticky;
+		bottom: 0;
+		z-index: 100;
 	}
 	
 	textarea {
