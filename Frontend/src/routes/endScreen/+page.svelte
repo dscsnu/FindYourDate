@@ -23,50 +23,6 @@
     let matchedUserName = 'Sarah';
     let matchedUserAge = 24;
 
-    onMount(async () => {
-        await authStore.loadSession();
-        const currentSession = await new Promise(resolve => {
-            const unsubscribe = authStore.subscribe(value => {
-                resolve(value);
-                unsubscribe();
-            });
-        });
-        
-        if (!currentSession?.authenticated) {
-            goto('/');
-            return;
-        }
-
-        // Check user status - only show endScreen if they've completed everything
-        try {
-            const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                
-                if (data.redirect_to === 'form') {
-                    // User hasn't completed form yet
-                    goto('/userForm');
-                    return;
-                } else if (data.redirect_to === 'chat') {
-                    // User hasn't completed chat yet
-                    sessionStorage.setItem('user_id', data.user_id);
-                    goto('/aiChatRoom');
-                    return;
-                }
-                // If redirect_to === 'complete', stay on this page
-                sessionStorage.setItem('user_id', data.user_id);
-            }
-        } catch (error) {
-            console.error('Error checking user status:', error);
-        }
-        
-        // All checks passed, show the page
-        loading = false;
-    });
-
     function createHeart() {
       const heart = {
         id: Math.random(),
