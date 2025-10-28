@@ -110,7 +110,7 @@ def display_gender_ratio(gender_counts):
     print("="*50)
     
     print(f"\nTotal users: {total}")
-    print(f' Bisexual users: {bisexual}')
+    # print(f' Bisexual users: {bisexual}')
     print("\nGender breakdown:")
     
     for gender, count in sorted(gender_counts.items()):

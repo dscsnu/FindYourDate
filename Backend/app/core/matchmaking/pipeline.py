@@ -89,8 +89,8 @@ def assign_preferences(people: list):
 
         # Sort by similarity (highest first)
         a.preferences = [b for b, _ in sorted(scored_partners, key=lambda x: x[1], reverse=True)]
-        if a.email == "sj993@snu.edu.in":
-            print(f"Preference List: {[ (p.email, a.similarity_scores[p]) for p in a.preferences]}")
+        # if a.email == "@snu.edu.in":
+        #     print(f"Preference List: {[ (p.email, a.similarity_scores[p]) for p in a.preferences]}")
     print(f"Computed {valid_pairs_count} valid pair similarities")
 
 def store_matches(db: Session, matches: list, algo="hybrid"):
