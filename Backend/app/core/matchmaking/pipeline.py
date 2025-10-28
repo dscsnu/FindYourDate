@@ -142,6 +142,7 @@ def export_matches_to_json(matches: list, filename: str = None):
                 "id": a.db_id,
                 "name": a.name,
                 "email": a.email,
+                "phone": a.phone,
                 "gender": a.gender,
                 "orientation": a.orientation,
                 "age": a.age
@@ -150,6 +151,7 @@ def export_matches_to_json(matches: list, filename: str = None):
                 "id": b.db_id,
                 "name": b.name,
                 "email": b.email,
+                "phone": b.phone,
                 "gender": b.gender,
                 "orientation": b.orientation,
                 "age": b.age

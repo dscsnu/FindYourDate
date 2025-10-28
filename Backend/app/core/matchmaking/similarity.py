@@ -17,7 +17,7 @@ def cosine_similarity(vec1, vec2):
     
     return dot_product / (norm1 * norm2)
 
-take_age_preference = False
+take_age_preference = True
 
 def valid_partner(a, b):
     if a.email == b.email:
@@ -30,13 +30,13 @@ def valid_partner(a, b):
             return False
 
     if take_age_preference:
-        if a.age_preference == 1 and b.age < a.age:
+        if a.age_preference == -1 and b.age < a.age:
             return False
-        if a.age_preference == -1 and b.age > a.age:
+        if a.age_preference == 1 and b.age > a.age:
             return False
-        if b.age_preference == 1 and a.age < b.age:
+        if b.age_preference == -1 and a.age < b.age:
             return False
-        if b.age_preference == -1 and a.age > b.age:
+        if b.age_preference == 1 and a.age > b.age:
             return False
 
     if a.orientation == "straight":
