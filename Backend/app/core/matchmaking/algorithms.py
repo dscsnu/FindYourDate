@@ -49,7 +49,7 @@ def hungarian(men, women):
         return []
     n = max(len(men), len(women))
     men_padded, women_padded = men + [None]*(n-len(men)), women + [None]*(n-len(women))
-    cost = np.full((n, n), LARGE_COST)
+    cost = np.full((n, n), LARGE_COST, dtype=float)
     pref_sets_m = {p: set(p.preferences) for p in men}
     pref_sets_w = {p: set(p.preferences) for p in women}
     for i, m in enumerate(men_padded):

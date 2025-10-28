@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from db.database import SessionLocal
-from models import User, MatchHistory
+from app.db.database import SessionLocal
+from app.models.match_history import MatchHistory
+from app.models.user_model import User
 from typing import List, Dict, Any
 
 

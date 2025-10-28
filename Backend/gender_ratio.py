@@ -63,12 +63,15 @@ def get_all_emails_from_qdrant():
     print(f"Extracted {len(emails)} emails")
     return emails
 
+bisexual = 0
+
 def get_gender_from_database(emails):
     """Look up gender for each email in PostgreSQL"""
     print("\nConnecting to PostgreSQL database...")
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(bind=engine)
     db = SessionLocal()
+    global bisexual
     
     gender_counts = Counter()
     users_found = 0
@@ -77,6 +80,8 @@ def get_gender_from_database(emails):
     print("Looking up gender for each user...")
     for email in emails:
         user = db.query(User).filter(User.email == email).first()
+        if user and user.orientation.lower() == 'bisexual':
+            bisexual += 1
         if user:
             gender_counts[user.gender] += 1
             users_found += 1
@@ -95,7 +100,7 @@ def get_gender_from_database(emails):
 def display_gender_ratio(gender_counts):
     """Display gender statistics"""
     total = sum(gender_counts.values())
-    
+    global bisexual
     if total == 0:
         print("\nNo users found!")
         return
@@ -105,6 +110,7 @@ def display_gender_ratio(gender_counts):
     print("="*50)
     
     print(f"\nTotal users: {total}")
+    print(f' Bisexual users: {bisexual}')
     print("\nGender breakdown:")
     
     for gender, count in sorted(gender_counts.items()):

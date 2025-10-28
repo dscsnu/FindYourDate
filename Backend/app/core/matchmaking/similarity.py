@@ -1,11 +1,26 @@
-from cosine_similarity_module import cosine_similarity
+import numpy as np
 
-cosine_similarity = cosine_similarity
+def cosine_similarity(vec1, vec2):
+    """
+    Calculate cosine similarity between two vectors
+    Returns a value between -1 and 1, where 1 means identical vectors
+    """
+    vec1 = np.array(vec1)
+    vec2 = np.array(vec2)
+    
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
+    
+    if norm1 == 0 or norm2 == 0:
+        return 0.0
+    
+    return dot_product / (norm1 * norm2)
 
 take_age_preference = False
 
 def valid_partner(a, b):
-    if a.id == b.id:
+    if a.email == b.email:
         return False
 
     if a.age < 18 or b.age < 18:

@@ -14,3 +14,4 @@ alembic.ini
 Backend/alembic/versions/fd0a6310116c_add_matches_relationship_to_user_model.py
 Backend/vector_hm491_at_snu.edu.in.json
 Backend/alembic/versions/2668cdb63de3_allow_age_17.py
+matches*.json
