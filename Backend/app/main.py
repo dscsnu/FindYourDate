@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import users, chat, auth, status
+from app.api import users, chat, auth, status, round1_results
 from app.db.database import Base, engine
 import logging
 
@@ -40,6 +40,7 @@ app.include_router(auth.router, prefix="/api", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(status.router, prefix="/api/status", tags=["Status"])
+app.include_router(round1_results.router, prefix="/api/round1", tags=["Round 1 Results"])
 
 @app.get("/")
 def root():

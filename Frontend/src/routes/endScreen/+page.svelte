@@ -1,30 +1,35 @@
-<script>
+<script lang="ts">
     import * as rive from "@rive-app/canvas";
     import { onMount } from 'svelte';
     import { goto } from '$app/navigation';
     import { authStore } from '$lib/stores/auth';
-    import { API_BASE_URL } from '$lib/api';
+    import { configStore } from '$lib/stores/config';
+    import { api, API_BASE_URL } from '$lib/api';
     import SignOutButton from '$lib/components/SignOutButton.svelte';
 
-    let canvas;
+    let canvas: HTMLCanvasElement;
     let currentAnimation = '';
     let currentText = $state('');
     let showDots = $state(false);
     let showButton = $state(false);
-    let riveInstance = null;
+    let riveInstance: any = null;
     let matchRevealed = $state(false);
-    let hearts = $state([]);
-    let heartInterval = null;
+    let hearts = $state<any[]>([]);
+    let heartInterval: any = null;
     let displayedName = $state('');
     let showAge = $state(false);
     let showPhoneNumber = $state(false);
-    let showRematchButton = $state(false);
-    let loading = $state(false); // Disabled for testing
+    let showDeclineButton = $state(false);
+    let showModal = $state(false);
+    let loading = $state(true);
+    let resultStatus = $state<'checking' | 'not_registered' | 'match_found' | 'no_match' | 'not_published'>('checking');
+    let round1ResultPublished = $state(false);
     
-    // TODO: Replace with actual matched user data from your backend/state
-    let matchedUserName = 'Sarah';
-    let matchedUserAge = 24;
-    let matchedUserPhoneNumber = '9876543210';
+    // Match data
+    let matchedUserName = $state('');
+    let matchedUserEmail = $state('');
+    let matchedUserPhoneNumber = $state('');
+    let userEmail = $state('');
 
     function createHeart() {
       const heart = {
@@ -65,7 +70,6 @@
 
     function typewriterEffect() {
       displayedName = '';
-      showAge = false;
       showPhoneNumber = false;
       let index = 0;
       
@@ -75,20 +79,16 @@
           index++;
         } else {
           clearInterval(typingInterval);
-          // Show age after name is fully typed
+          // Show phone number after name is fully typed
           setTimeout(() => {
-            showAge = true;
-            // Show phone number after age is shown
+            showPhoneNumber = true;
+            // Show decline button after phone number is shown
             setTimeout(() => {
-              showPhoneNumber = true;
-              // Show rematch button after phone number is shown
-              setTimeout(() => {
-                showRematchButton = true;
-              }, 300);
-            }, 500);
-          }, 300);
+              showDeclineButton = true;
+            }, 300);
+          }, 500);
         }
-      }, 400); // Type one character every 400ms
+      }, 100); // Type one character every 100ms
     }
 
     function playAnalyzingAnimation() {
@@ -109,10 +109,19 @@
 
     function playSadAnimation() {
       currentAnimation = '/animations/heart-sleeping.riv';
-      currentText = "The match ratio wasn't in your favor, but don't worry, love might still strike somewhere unexpected!";
+      currentText = "No match found, but don't worry!";
       showDots = false;
       showButton = false;
-      showRematchButton = true;
+      showDeclineButton = false;
+      loadAnimation();
+    }
+    
+    function playNotRegisteredAnimation() {
+      currentAnimation = '/animations/heart-sleeping.riv';
+      currentText = "You're not registered for Round 1";
+      showDots = false;
+      showButton = false;
+      showDeclineButton = false;
       loadAnimation();
     }
 
@@ -130,6 +139,27 @@
       
       // Start typewriter effect
       typewriterEffect();
+    }
+    
+    function handleDecline() {
+      showModal = true;
+    }
+    
+    async function handleRound2Choice(applyRound2: boolean) {
+      try {
+        await api.round1.updateMatchStatus(userEmail, applyRound2);
+        showModal = false;
+        
+        // Show confirmation message
+        if (applyRound2) {
+          alert('You have been enrolled in Round 2!');
+        } else {
+          alert('You have opted out of Round 2.');
+        }
+      } catch (error) {
+        console.error('Error updating match status:', error);
+        alert('Failed to update your choice. Please try again.');
+      }
     }
 
     function loadAnimation() {
@@ -152,6 +182,11 @@
     }
 
     onMount(async () => {
+        // Check config first
+        configStore.subscribe(config => {
+            round1ResultPublished = config.round1ResultPublished;
+        });
+        
         await authStore.loadSession();
         const currentSession = await new Promise(resolve => {
             const unsubscribe = authStore.subscribe(value => {
@@ -164,50 +199,49 @@
             goto('/');
             return;
         }
+        
+        userEmail = currentSession.user.email;
 
-        // Check user status - only show endScreen if they've completed everything
+        // Check if Round 1 results are published
+        if (!round1ResultPublished) {
+            resultStatus = 'not_published';
+            loading = false;
+            return;
+        }
+
         try {
-            const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                const data = await response.json();
+            // Check Round 1 results
+            const result = await api.round1.checkResult(userEmail);
+            resultStatus = result.status;
+            
+            if (result.status === 'match_found') {
+                matchedUserName = result.match.name;
+                matchedUserEmail = result.match.email;
+                matchedUserPhoneNumber = result.match.phone;
                 
-                if (data.redirect_to === 'form') {
-                    // User hasn't completed form yet
-                    goto('/userForm');
-                    return;
-                } else if (data.redirect_to === 'chat') {
-                    // User hasn't completed chat yet
-                    sessionStorage.setItem('user_id', data.user_id);
-                    goto('/aiChatRoom');
-                    return;
-                }
-                // If redirect_to === 'complete', stay on this page
-                sessionStorage.setItem('user_id', data.user_id);
+                loading = false;
+                setTimeout(() => {
+                    playMatchFoundAnimation();
+                }, 200);
+            } else if (result.status === 'no_match') {
+                loading = false;
+                setTimeout(() => {
+                    playSadAnimation();
+                }, 200);
+            } else if (result.status === 'not_registered') {
+                loading = false;
+                setTimeout(() => {
+                    playNotRegisteredAnimation();
+                }, 200);
             }
         } catch (error) {
-            console.error('Error checking user status:', error);
+            console.error('Error checking Round 1 results:', error);
+            loading = false;
         }
-        
-        // All checks passed, show the page
-        loading = false;
-        
-        // Wait for DOM to render, then start animation
-        setTimeout(() => {
-            playAnalyzingAnimation();
-        }, 200);
     });
 
     $effect(() => {
       if (!canvas) return;
-
-      // Play animation for testing
-      setTimeout(() => {
-        playMatchFoundAnimation();
-      }, 0);
-      // Change this mf
 
       return () => {
         if (riveInstance) {
@@ -223,7 +257,19 @@
         <div class="text-center">
             <div class="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mx-auto mb-4" style="border-color: var(--primary-color); border-top-color: transparent;"></div>
             <p class="text-xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-                Loading your match...
+                Checking your results...
+            </p>
+        </div>
+    </div>
+{:else if resultStatus === 'not_published'}
+    <div class="bg-white flex items-center justify-center w-screen h-screen">
+        <div class="text-center px-4">
+            <div class="text-6xl mb-4">⏳</div>
+            <p class="text-2xl font-bold mb-2" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                Results Not Yet Published
+            </p>
+            <p class="text-lg" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                Round 1 results will be announced soon. Stay tuned!
             </p>
         </div>
     </div>
@@ -256,7 +302,7 @@
     </div>
   {/if}
 
-  {#if matchRevealed}
+  {#if matchRevealed && resultStatus === 'match_found'}
     <div class="flex flex-col items-center justify-center gap-4 text-center px-4 relative z-10">
       <p class="text-3xl font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
         You've been matched with
@@ -264,17 +310,54 @@
       <p class="text-7xl font-bold typewriter" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
         {displayedName}<span class="cursor">|</span>
       </p>
-      {#if showAge}
-        <p class="text-3xl font-bold fade-in" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-          {matchedUserAge} years old
-        </p>
-      {/if}
       {#if showPhoneNumber}
         <div class="phone-container fade-in" style="background-color: var(--primary-color);">
           <img src="/icons/phone-icon.png" alt="phone" class="phone-icon" />
           <span class="phone-number"><a class="no-decor" href="https://wa.me/+91{matchedUserPhoneNumber}">{matchedUserPhoneNumber}</a></span>
         </div>
+        <p class="text-sm opacity-70 mt-2 fade-in" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          Email: {matchedUserEmail}
+        </p>
       {/if}
+      {#if showDeclineButton}
+        <button 
+          onclick={handleDecline}
+          class="decline-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer mt-4 fade-in"
+          style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
+        >
+          Decline Match
+        </button>
+      {/if}
+    </div>
+  {:else if resultStatus === 'no_match'}
+    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+      <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+      <div class="flex flex-col items-center gap-4 text-center px-4">
+        <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+          {currentText}
+        </p>
+        <p class="text-lg font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          You will be automatically enrolled in Round 2!
+        </p>
+        <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          We'll find you a perfect match in the next round ✨
+        </p>
+      </div>
+    </div>
+  {:else if resultStatus === 'not_registered'}
+    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+      <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+      <div class="flex flex-col items-center gap-4 text-center px-4">
+        <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+          {currentText}
+        </p>
+        <p class="text-lg font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          Stay tuned for Round 2! 💕
+        </p>
+        <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          You'll have another chance to find your perfect match very soon
+        </p>
+      </div>
     </div>
   {:else}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
@@ -284,11 +367,6 @@
           <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
             {currentText}{#if showDots}<span class="dots"></span>{/if}
           </p>
-          {#if showDots}
-            <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-              It might take a day once registrations are done to get your match
-            </p>
-          {/if}
         {/if}
         {#if showButton}
           <button 
@@ -302,19 +380,37 @@
       </div>
     </div>
   {/if}
-
-  <!-- Rematch Button - Bottom Right -->
-  {#if showRematchButton}
-    <div class="absolute bottom-6 right-6 z-50">
-      <button 
-        class="rematch-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer"
-        style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
-      >
-        Rematch Me 💘
-      </button>
-    </div>
-  {/if}
 </div>
+{/if}
+
+<!-- Round 2 Choice Modal -->
+{#if showModal}
+  <div class="modal-overlay" onclick={() => showModal = false}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <h2 class="text-2xl font-bold mb-4" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+        Would you like to be considered for Round 2?
+      </h2>
+      <p class="text-base mb-6" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+        You can choose to be matched with someone new in Round 2, or opt out completely.
+      </p>
+      <div class="flex gap-4 justify-center">
+        <button 
+          onclick={() => handleRound2Choice(false)}
+          class="modal-button px-6 py-3 rounded-full text-white font-bold"
+          style="font-family: 'Nunito', sans-serif; background-color: #999;"
+        >
+          No Round 2
+        </button>
+        <button 
+          onclick={() => handleRound2Choice(true)}
+          class="modal-button px-6 py-3 rounded-full text-white font-bold"
+          style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
+        >
+          Apply Round 2
+        </button>
+      </div>
+    </div>
+  </div>
 {/if}
 
 <style>
@@ -453,6 +549,52 @@
   .rematch-button:hover {
     filter: brightness(1.1);
     transform: scale(1.05);
+  }
+  
+  .decline-button {
+    transition: all 0.3s ease;
+  }
+
+  .decline-button:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+  }
+  
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal-button {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .modal-button:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+  }
+  
+  .no-decor {
+    text-decoration: none;
+    color: inherit;
   }
 
   @media (max-width: 550px) {

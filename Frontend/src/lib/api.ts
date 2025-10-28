@@ -51,6 +51,33 @@ export const api = {
 	chat: {
 		// Add chat endpoints here as needed
 	},
+	
+	// Round 1 Results endpoints
+	round1: {
+		checkResult: async (email: string) => {
+			const response = await fetch(`${API_BASE_URL}/round1/check-result?email=${encodeURIComponent(email)}`, {
+				credentials: 'include',
+			});
+			if (!response.ok) throw new Error('Failed to check Round 1 results');
+			return response.json();
+		},
+		
+		updateMatchStatus: async (email: string, applyRound2: boolean) => {
+			const response = await fetch(`${API_BASE_URL}/round1/update-match-status`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include',
+				body: JSON.stringify({
+					user_email: email,
+					apply_round2: applyRound2
+				})
+			});
+			if (!response.ok) throw new Error('Failed to update match status');
+			return response.json();
+		}
+	}
 };
 
 export { API_BASE_URL };
