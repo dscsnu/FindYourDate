@@ -318,7 +318,7 @@
         </div>
     </div>
 {:else if resultStatus === 'not_registered'}
-    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+    <div class="bg-white flex flex-col items-center justify-center gap-4 relative z-10">
       {#if currentAnimation}
         <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
       {:else}
@@ -339,7 +339,7 @@
       </div>
     </div>
 {:else if resultStatus === 'no_match'}
-    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+    <div class="bg-white flex flex-col items-center justify-center gap-4 relative z-10">
       <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
       <div class="flex flex-col items-center gap-4 text-center px-4">
         <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
@@ -531,7 +531,7 @@
       </div>
     {:else}
       <!-- Default match_found UI (Reveal Match etc) -->
-      <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+      <div class="bg-white flex flex-col items-center justify-center gap-4 relative z-10">
         <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
         <div class="flex flex-col items-center gap-4 text-center px-4">
           {#if currentText}
