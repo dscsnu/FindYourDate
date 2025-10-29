@@ -105,7 +105,7 @@
       currentText = 'WE HAVE FOUND YOU A MATCH!';
       showDots = false;
       showButton = true;
-      loadAnimation();
+      // Animation will load via $effect when canvas is ready
     }
 
     function playSadAnimation() {
@@ -114,7 +114,7 @@
       showDots = false;
       showButton = false;
       showDeclineButton = false;
-      loadAnimation();
+      // Animation will load via $effect when canvas is ready
     }
     
     function playNotRegisteredAnimation() {
@@ -123,7 +123,7 @@
       showDots = false;
       showButton = false;
       showDeclineButton = false;
-      loadAnimation();
+      // Animation will load via $effect when canvas is ready
     }
 
     function handleRevealMatch() {
@@ -225,9 +225,10 @@
                 
                 // Only show match animation if status is ACCEPTED or null (default behavior)
                 if (matchStatus === 'ACCEPTED' || matchStatus === null) {
+                    // Wait for canvas to be available
                     setTimeout(() => {
                         playMatchFoundAnimation();
-                    }, 200);
+                    }, 500);
                 }
             } else if (result.status === 'no_match') {
                 loading = false;
@@ -255,6 +256,13 @@
         }
         stopHeartAnimation();
       }
+    });
+    
+    // Load animation when canvas becomes available and we have an animation to show
+    $effect(() => {
+        if (canvas && currentAnimation && !riveInstance) {
+            loadAnimation();
+        }
     });
     
     // Create floating hearts for PENDING and DECLINED status pages
