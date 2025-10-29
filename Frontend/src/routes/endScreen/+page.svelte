@@ -356,31 +356,27 @@
 {:else if resultStatus === 'match_found'}
     {#if matchStatus === 'ACCEPTED'}
       <div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
-        <!-- Sign Out Button - Top Right -->
         <div class="absolute top-4 right-4 z-50">
           <SignOutButton />
         </div>
-        <!-- Floating hearts container (behind everything) -->
-        {#if matchRevealed}
-          <div class="hearts-container">
-            {#each hearts as heart (heart.id)}
-              <img 
-                src="/images/pink-heart.png" 
-                alt="heart"
-                class="floating-heart"
-                style="
-                  left: {heart.left}%;
-                  animation-duration: {heart.duration}s;
-                  animation-delay: {heart.delay}s;
-                  width: {heart.size}px;
-                  height: {heart.size}px;
-                  transform: rotate({heart.rotation}deg);
-                "
-              />
-            {/each}
+
+        {#if !matchRevealed}
+          <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+            <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+            <div class="flex flex-col items-center gap-4 text-center px-4">
+              <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                {currentText}
+              </p>
+              <button 
+                on:click={handleRevealMatch}
+                class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
+                style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
+              >
+                Reveal Match
+              </button>
+            </div>
           </div>
-        {/if}
-        {#if matchRevealed}
+        {:else}
           <div class="flex flex-col items-center justify-center gap-4 text-center px-4 relative z-10">
             <p class="text-3xl font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
               You've been matched with
@@ -397,35 +393,6 @@
                 Email: {matchedUserEmail}
               </p>
             {/if}
-            {#if showDeclineButton}
-              <button 
-                on:click={handleDecline}
-                class="decline-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer mt-4 fade-in"
-                style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
-              >
-                Decline Match
-              </button>
-            {/if}
-          </div>
-        {:else}
-          <div class="flex flex-col items-center justify-center gap-4 relative z-10">
-            <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
-            <div class="flex flex-col items-center gap-4 text-center px-4">
-              {#if currentText}
-                <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-                  {currentText}{#if showDots}<span class="dots"></span>{/if}
-                </p>
-              {/if}
-              {#if showButton}
-                <button 
-                  on:click={handleRevealMatch}
-                  class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
-                  style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
-                >
-                  Reveal Match
-                </button>
-              {/if}
-            </div>
           </div>
         {/if}
       </div>
