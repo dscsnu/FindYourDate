@@ -223,8 +223,8 @@
                 
                 loading = false;
                 
-                // Only show match animation if status is ACCEPTED
-                if (matchStatus === 'ACCEPTED') {
+                // Only show match animation if status is ACCEPTED or null (default behavior)
+                if (matchStatus === 'ACCEPTED' || matchStatus === null) {
                     setTimeout(() => {
                         playMatchFoundAnimation();
                     }, 200);
@@ -446,6 +446,21 @@
         </button>
       {/if}
     </div>
+  {:else if resultStatus === 'not_registered'}
+    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+      <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+      <div class="flex flex-col items-center gap-4 text-center px-4">
+        <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+          {currentText}
+        </p>
+        <p class="text-lg font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          Stay tuned for Round 2! 💕
+        </p>
+        <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+          You'll have another chance to find your perfect match very soon
+        </p>
+      </div>
+    </div>
   {:else if resultStatus === 'no_match'}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
       <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
@@ -461,19 +476,24 @@
         </p>
       </div>
     </div>
-  {:else if resultStatus === 'not_registered'}
+  {:else if resultStatus === 'match_found'}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
       <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
       <div class="flex flex-col items-center gap-4 text-center px-4">
-        <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-          {currentText}
-        </p>
-        <p class="text-lg font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-          Stay tuned for Round 2! 💕
-        </p>
-        <p class="text-sm opacity-70 mt-2" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-          You'll have another chance to find your perfect match very soon
-        </p>
+        {#if currentText}
+          <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+            {currentText}{#if showDots}<span class="dots"></span>{/if}
+          </p>
+        {/if}
+        {#if showButton}
+          <button 
+            onclick={handleRevealMatch}
+            class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
+            style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
+          >
+            Reveal Match
+          </button>
+        {/if}
       </div>
     </div>
   {:else}
