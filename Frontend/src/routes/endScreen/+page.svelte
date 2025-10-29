@@ -248,15 +248,11 @@
                     }, 300);
                 }
             } else if (result.status === 'no_match') {
+                playSadAnimation();
                 loading = false;
-                setTimeout(() => {
-                    playSadAnimation();
-                }, 200);
             } else if (result.status === 'not_registered') {
+                playNotRegisteredAnimation();
                 loading = false;
-                setTimeout(() => {
-                    playNotRegisteredAnimation();
-                }, 200);
             }
         } catch (error) {
             console.error('Error checking Round 1 results:', error);
@@ -419,7 +415,7 @@
             </div>
         </div>
     </div>
-{:else if matchStatus === 'ACCEPTED' || (resultStatus !== 'not_published' && matchStatus === null)}
+{:else if matchStatus === 'ACCEPTED'}
 
 <div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
   <!-- Sign Out Button - Top Right -->
