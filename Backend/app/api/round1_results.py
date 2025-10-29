@@ -116,7 +116,7 @@ async def check_round1_result(email: str):
     # Get user's match status from match_history
     match_history = db.query(MatchHistory).filter(
         MatchHistory.user_id == user.id
-    ).order_by(MatchHistory.created_at.desc()).first()
+    ).first()
     
     user_match_status = match_history.status.value if match_history else "ACCEPTED"
     
