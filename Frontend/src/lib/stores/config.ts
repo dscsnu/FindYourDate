@@ -7,7 +7,7 @@ interface AppConfig {
 
 function createConfigStore() {
 	const { subscribe, set, update } = writable<AppConfig>({
-		formsClosed: false, // Set to true to show the forms closed page
+		formsClosed: true, // Set to true to show the forms closed page
 		round1ResultPublished: true // Set to true to show Round 1 results
 	});
 
