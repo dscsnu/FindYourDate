@@ -221,25 +221,21 @@
                 matchedUserEmail = result.match.email;
                 matchedUserPhoneNumber = result.match.phone;
                 
-                loading = false;
-                
                 // Only show match animation if status is ACCEPTED or null (default behavior)
                 if (matchStatus === 'ACCEPTED' || matchStatus === null) {
-                    // Wait for canvas to be available
-                    setTimeout(() => {
-                        playMatchFoundAnimation();
-                    }, 500);
+                    // Set animation state first, then set loading to false
+                    playMatchFoundAnimation();
+                    loading = false;
+                } else {
+                    // For PENDING/DECLINED, just stop loading
+                    loading = false;
                 }
             } else if (result.status === 'no_match') {
+                playSadAnimation();
                 loading = false;
-                setTimeout(() => {
-                    playSadAnimation();
-                }, 200);
             } else if (result.status === 'not_registered') {
+                playNotRegisteredAnimation();
                 loading = false;
-                setTimeout(() => {
-                    playNotRegisteredAnimation();
-                }, 200);
             }
         } catch (error) {
             console.error('Error checking Round 1 results:', error);
