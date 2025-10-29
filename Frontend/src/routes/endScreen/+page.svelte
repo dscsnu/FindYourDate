@@ -9,28 +9,28 @@
 
     let canvas: HTMLCanvasElement;
     let currentAnimation = '';
-    let currentText = $state('');
-    let showDots = $state(false);
-    let showButton = $state(false);
+    let currentText = '';
+    let showDots = false;
+    let showButton = false;
     let riveInstance: any = null;
-    let matchRevealed = $state(false);
-    let hearts = $state<any[]>([]);
+    let matchRevealed = false;
+    let hearts: any[] = [];
     let heartInterval: any = null;
-    let displayedName = $state('');
-    let showAge = $state(false);
-    let showPhoneNumber = $state(false);
-    let showDeclineButton = $state(false);
-    let showModal = $state(false);
-    let loading = $state(true);
-    let resultStatus = $state<'checking' | 'not_registered' | 'match_found' | 'no_match' | 'not_published'>('checking');
-    let matchStatus = $state<'ACCEPTED' | 'PENDING' | 'DECLINED' | null>(null);
-    let round1ResultPublished = $state(false);
-    
+    let displayedName = '';
+    let showAge = false;
+    let showPhoneNumber = false;
+    let showDeclineButton = false;
+    let showModal = false;
+    let loading = true;
+    let resultStatus: 'checking' | 'not_registered' | 'match_found' | 'no_match' | 'not_published' = 'checking';
+    let matchStatus: 'ACCEPTED' | 'PENDING' | 'DECLINED' | null = null;
+    let round1ResultPublished = false;
+
     // Match data
-    let matchedUserName = $state('');
-    let matchedUserEmail = $state('');
-    let matchedUserPhoneNumber = $state('');
-    let userEmail = $state('');
+    let matchedUserName = '';
+    let matchedUserEmail = '';
+    let matchedUserPhoneNumber = '';
+    let userEmail = '';
 
     function createHeart() {
       const heart = {
@@ -73,7 +73,7 @@
       displayedName = '';
       showPhoneNumber = false;
       let index = 0;
-      
+
       const typingInterval = setInterval(() => {
         if (index < matchedUserName.length) {
           displayedName += matchedUserName[index];
@@ -89,7 +89,7 @@
             }, 300);
           }, 500);
         }
-      }, 100); // Type one character every 100ms
+      }, 100);
     }
 
     function playAnalyzingAnimation() {
@@ -105,6 +105,7 @@
       currentText = 'WE HAVE FOUND YOU A MATCH!';
       showDots = false;
       showButton = true;
+      resultStatus = 'match_found';
       // Animation will load via $effect when canvas is ready
     }
 
@@ -127,19 +128,16 @@
     }
 
     function handleRevealMatch() {
-      // Hide all contents and reveal match information
-      matchRevealed = true;
-      
-      // Cleanup animation when revealing match
-      if (riveInstance) {
-        riveInstance.cleanup();
+      console.log('Reveal Match clicked');
+      if (!matchRevealed) {
+        matchRevealed = true;
+        if (riveInstance) {
+            riveInstance.cleanup();
+        }
+        startHeartAnimation();
+        typewriterEffect();
+        console.log('Reveal match triggered');
       }
-      
-      // Start heart animation
-      startHeartAnimation();
-      
-      // Start typewriter effect
-      typewriterEffect();
     }
     
     function handleDecline() {
@@ -164,22 +162,36 @@
     }
 
     function loadAnimation() {
-      if (!canvas) return;
-
-      // Cleanup existing instance if any
-      if (riveInstance) {
-        riveInstance.cleanup();
-      }
-
-      // Create new instance with current animation
-      riveInstance = new rive.Rive({
-        src: currentAnimation,
-        canvas: canvas,
-        autoplay: true,
-        onLoad: () => {
-          riveInstance.resizeDrawingSurfaceToCanvas();
+      setTimeout(() => {
+        if (!canvas) {
+          console.error('Canvas element is not available.');
+          return;
         }
-      });
+
+        // Cleanup existing instance if any
+        if (riveInstance) {
+          riveInstance.cleanup();
+        }
+
+        // Create new instance with current animation
+        try {
+          riveInstance = new rive.Rive({
+            src: currentAnimation,
+            canvas: canvas,
+            autoplay: true,
+            onLoad: () => {
+              console.log('Rive animation loaded successfully.');
+              riveInstance.resizeDrawingSurfaceToCanvas();
+              riveInstance.play();
+            },
+            onError: (error) => {
+              console.error('Error loading Rive animation:', error);
+            }
+          });
+        } catch (error) {
+          console.error('Failed to initialize Rive animation:', error);
+        }
+      }, 100); // Delay initialization by 100ms
     }
 
     onMount(async () => {
@@ -189,8 +201,16 @@
         });
         
         await authStore.loadSession();
-        const currentSession = await new Promise(resolve => {
-            const unsubscribe = authStore.subscribe(value => {
+        interface AuthSession {
+            authenticated: boolean;
+            user: {
+                email: string;
+                // add other user properties if needed
+            };
+        }
+
+        const currentSession = await new Promise<AuthSession>(resolve => {
+            const unsubscribe = authStore.subscribe((value: AuthSession) => {
                 resolve(value);
                 unsubscribe();
             });
@@ -215,20 +235,17 @@
             const result = await api.round1.checkResult(userEmail);
             resultStatus = result.status;
             matchStatus = result.match_status || null;
-            
+
+            // Wait for canvas to mount before playing animation
             if (result.status === 'match_found') {
                 matchedUserName = result.match.name;
                 matchedUserEmail = result.match.email;
                 matchedUserPhoneNumber = result.match.phone;
-                
                 loading = false;
-                
-                // Only show match animation if status is ACCEPTED or null (default behavior)
-                if (matchStatus === 'ACCEPTED' || matchStatus === null) {
-                    // Wait for canvas to be available
+                if (matchStatus === 'ACCEPTED') {
                     setTimeout(() => {
                         playMatchFoundAnimation();
-                    }, 500);
+                    }, 300);
                 }
             } else if (result.status === 'no_match') {
                 loading = false;
@@ -247,34 +264,38 @@
         }
     });
 
-    $effect(() => {
-      if (!canvas) return;
+    // Cleanup and animation load triggers using normal Svelte reactivity
+    import { afterUpdate, onDestroy } from 'svelte';
 
-      return () => {
-        if (riveInstance) {
-          riveInstance.cleanup();
-        }
-        stopHeartAnimation();
+    // Cleanup riveInstance and stop hearts on destroy
+    onDestroy(() => {
+      if (riveInstance) {
+        riveInstance.cleanup();
       }
+      stopHeartAnimation();
     });
-    
-    // Load animation when canvas becomes available and we have an animation to show
-    $effect(() => {
-        if (canvas && currentAnimation && !riveInstance) {
-            loadAnimation();
-        }
-    });
-    
+
+    // Load animation when canvas and animation are set
+    $: if (canvas && currentAnimation) {
+      loadAnimation();
+    }
+
     // Create floating hearts for PENDING and DECLINED status pages
-    $effect(() => {
-        if (matchStatus === 'PENDING' || matchStatus === 'DECLINED') {
-            const interval = setInterval(() => {
-                createHeart();
-            }, 1500);
-            
-            return () => clearInterval(interval);
+    let pendingHeartInterval: any = null;
+    $: {
+      if (matchStatus === 'PENDING' || matchStatus === 'DECLINED') {
+        if (!pendingHeartInterval) {
+          pendingHeartInterval = setInterval(() => {
+            createHeart();
+          }, 1500);
         }
-    });
+      } else {
+        if (pendingHeartInterval) {
+          clearInterval(pendingHeartInterval);
+          pendingHeartInterval = null;
+        }
+      }
+    }
 </script>
 
 {#if loading}
@@ -446,7 +467,7 @@
       {/if}
       {#if showDeclineButton}
         <button 
-          onclick={handleDecline}
+          on:click={handleDecline}
           class="decline-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer mt-4 fade-in"
           style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
         >
@@ -495,7 +516,7 @@
         {/if}
         {#if showButton}
           <button 
-            onclick={handleRevealMatch}
+            on:click={handleRevealMatch}
             class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
             style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
           >
@@ -515,7 +536,7 @@
         {/if}
         {#if showButton}
           <button 
-            onclick={handleRevealMatch}
+            on:click={handleRevealMatch}
             class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
             style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
           >
@@ -530,8 +551,8 @@
 
 <!-- Round 2 Choice Modal -->
 {#if showModal}
-  <div class="modal-overlay" onclick={() => showModal = false}>
-    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-overlay" on:click={() => showModal = false}>
+    <div class="modal-content" on:click={(e) => e.stopPropagation()}>
       <h2 class="text-2xl font-bold mb-4" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
         Would you like to be considered for Round 2?
       </h2>
@@ -540,14 +561,14 @@
       </p>
       <div class="flex gap-4 justify-center">
         <button 
-          onclick={() => handleRound2Choice(false)}
+          on:click={() => handleRound2Choice(false)}
           class="modal-button px-6 py-3 rounded-full text-white font-bold"
           style="font-family: 'Nunito', sans-serif; background-color: #999;"
         >
           No Round 2
         </button>
         <button 
-          onclick={() => handleRound2Choice(true)}
+          on:click={() => handleRound2Choice(true)}
           class="modal-button px-6 py-3 rounded-full text-white font-bold"
           style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
         >
