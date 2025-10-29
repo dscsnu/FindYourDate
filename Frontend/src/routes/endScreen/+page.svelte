@@ -49,6 +49,7 @@
       } else {
         thankyouMessage = 'Thank you for registering. Hope you had a good experience!';
       }
+      location.reload();
     } catch (error) {
       console.error('Error updating match status:', error);
       alert('Failed to update your choice. Please try again.');
