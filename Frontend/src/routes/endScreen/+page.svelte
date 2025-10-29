@@ -394,7 +394,7 @@
             </div>
         </div>
     </div>
-{:else if matchStatus === 'ACCEPTED' || (resultStatus !== 'not_published' && matchStatus === null)}
+{:else if matchStatus === 'ACCEPTED'}
 
 <div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
   <!-- Sign Out Button - Top Right -->
