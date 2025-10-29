@@ -260,7 +260,7 @@
     
     // Load animation when canvas becomes available and we have an animation to show
     $effect(() => {
-        if (canvas && currentAnimation && !riveInstance) {
+        if (canvas && currentAnimation) {
             loadAnimation();
         }
     });
