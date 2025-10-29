@@ -23,6 +23,7 @@
     let showModal = $state(false);
     let loading = $state(true);
     let resultStatus = $state<'checking' | 'not_registered' | 'match_found' | 'no_match' | 'not_published'>('checking');
+    let matchStatus = $state<'ACCEPTED' | 'PENDING' | 'DECLINED' | null>(null);
     let round1ResultPublished = $state(false);
     
     // Match data
@@ -213,6 +214,7 @@
             // Check Round 1 results
             const result = await api.round1.checkResult(userEmail);
             resultStatus = result.status;
+            matchStatus = result.match_status || null;
             
             if (result.status === 'match_found') {
                 matchedUserName = result.match.name;
@@ -220,9 +222,13 @@
                 matchedUserPhoneNumber = result.match.phone;
                 
                 loading = false;
-                setTimeout(() => {
-                    playMatchFoundAnimation();
-                }, 200);
+                
+                // Only show match animation if status is ACCEPTED
+                if (matchStatus === 'ACCEPTED') {
+                    setTimeout(() => {
+                        playMatchFoundAnimation();
+                    }, 200);
+                }
             } else if (result.status === 'no_match') {
                 loading = false;
                 setTimeout(() => {
@@ -250,6 +256,17 @@
         stopHeartAnimation();
       }
     });
+    
+    // Create floating hearts for PENDING and DECLINED status pages
+    $effect(() => {
+        if (matchStatus === 'PENDING' || matchStatus === 'DECLINED') {
+            const interval = setInterval(() => {
+                createHeart();
+            }, 1500);
+            
+            return () => clearInterval(interval);
+        }
+    });
 </script>
 
 {#if loading}
@@ -271,6 +288,106 @@
             <p class="text-lg" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
                 Round 1 results will be announced soon. Stay tuned!
             </p>
+        </div>
+    </div>
+{:else if matchStatus === 'PENDING'}
+    <!-- PENDING Status Page - Round 2 Application -->
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <!-- Floating Hearts Background -->
+        <div class="floating-hearts-container">
+            {#each hearts as heart (heart.id)}
+                <img 
+                    src="/images/heart.png"
+                    alt="heart"
+                    class="floating-heart-pending"
+                    style="
+                        left: {heart.left}%;
+                        animation-duration: {heart.duration}s;
+                        animation-delay: {heart.delay}s;
+                        width: {heart.size}px;
+                        height: {heart.size}px;
+                        transform: rotate({heart.rotation}deg);
+                    "
+                />
+            {/each}
+        </div>
+        
+        <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
+            <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl">💕</div>
+                    <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        Thank You for Applying!
+                    </h1>
+                    <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                        Round 2 will start very soon
+                    </p>
+                    <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        We're preparing the next round of matches. You'll be notified when Round 2 begins!
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 mt-4">
+                    <div class="animate-pulse">
+                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                    </div>
+                    <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        Stay tuned for updates!
+                    </p>
+                    <div class="animate-pulse">
+                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{:else if matchStatus === 'DECLINED'}
+    <!-- DECLINED Status Page -->
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <!-- Floating Hearts Background -->
+        <div class="floating-hearts-container">
+            {#each hearts as heart (heart.id)}
+                <img 
+                    src="/images/heart.png"
+                    alt="heart"
+                    class="floating-heart-pending"
+                    style="
+                        left: {heart.left}%;
+                        animation-duration: {heart.duration}s;
+                        animation-delay: {heart.delay}s;
+                        width: {heart.size}px;
+                        height: {heart.size}px;
+                        transform: rotate({heart.rotation}deg);
+                    "
+                />
+            {/each}
+        </div>
+        
+        <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
+            <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl">💝</div>
+                    <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        Thank You for Registering With Us!
+                    </h1>
+                    <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                        We appreciate your participation
+                    </p>
+                    <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        We hope you had a wonderful experience with Find Your Date. We wish you all the best!
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 mt-4">
+                    <div class="animate-pulse">
+                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                    </div>
+                    <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                        Thank you for being part of our journey!
+                    </p>
+                    <div class="animate-pulse">
+                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 {:else}
@@ -595,6 +712,42 @@
   .no-decor {
     text-decoration: none;
     color: inherit;
+  }
+  
+  .floating-hearts-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .floating-heart-pending {
+    position: absolute;
+    bottom: -60px;
+    opacity: 0;
+    animation: floatUpPending linear forwards;
+    pointer-events: none;
+  }
+
+  @keyframes floatUpPending {
+    0% {
+      bottom: -60px;
+      opacity: 0;
+    }
+    10% {
+      opacity: 0.8;
+    }
+    90% {
+      opacity: 0.8;
+    }
+    100% {
+      bottom: 110vh;
+      opacity: 0;
+    }
   }
 
   @media (max-width: 550px) {

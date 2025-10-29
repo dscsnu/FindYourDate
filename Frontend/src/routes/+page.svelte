@@ -3,13 +3,17 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { api, API_BASE_URL } from '$lib/api';
+    import { configStore } from '$lib/stores/config';
 
 	let hearts = $state([]);
 	let heartIdCounter = 0;
 	const MAX_HEARTS = 4;
 	let loading = $state(false);
 	let checkingStatus = $state(true);
-
+  let round1ResultPublished = $state(false);
+	if(round1ResultPublished){
+		goto('/endScreen');
+	}
 	async function checkUserStatus(session) {
 		try {
 			// Check user status in backend using cookie authentication
