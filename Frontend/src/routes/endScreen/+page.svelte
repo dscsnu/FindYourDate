@@ -139,7 +139,7 @@
         console.log('Reveal match triggered');
       }
     }
-    
+
     function handleDecline() {
       showModal = true;
     }
@@ -317,163 +317,7 @@
             </p>
         </div>
     </div>
-{:else if matchStatus === 'PENDING'}
-    <!-- PENDING Status Page - Round 2 Application -->
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <!-- Floating Hearts Background -->
-        <div class="floating-hearts-container">
-            {#each hearts as heart (heart.id)}
-                <img 
-                    src="/images/heart.png"
-                    alt="heart"
-                    class="floating-heart-pending"
-                    style="
-                        left: {heart.left}%;
-                        animation-duration: {heart.duration}s;
-                        animation-delay: {heart.delay}s;
-                        width: {heart.size}px;
-                        height: {heart.size}px;
-                        transform: rotate({heart.rotation}deg);
-                    "
-                />
-            {/each}
-        </div>
-        
-        <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
-            <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-6xl">💕</div>
-                    <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        Thank You for Applying!
-                    </h1>
-                    <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-                        Round 2 will start very soon
-                    </p>
-                    <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        We're preparing the next round of matches. You'll be notified when Round 2 begins!
-                    </p>
-                </div>
-                <div class="flex items-center gap-3 mt-4">
-                    <div class="animate-pulse">
-                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
-                    </div>
-                    <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        Stay tuned for updates!
-                    </p>
-                    <div class="animate-pulse">
-                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-{:else if matchStatus === 'DECLINED'}
-    <!-- DECLINED Status Page -->
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <!-- Floating Hearts Background -->
-        <div class="floating-hearts-container">
-            {#each hearts as heart (heart.id)}
-                <img 
-                    src="/images/heart.png"
-                    alt="heart"
-                    class="floating-heart-pending"
-                    style="
-                        left: {heart.left}%;
-                        animation-duration: {heart.duration}s;
-                        animation-delay: {heart.delay}s;
-                        width: {heart.size}px;
-                        height: {heart.size}px;
-                        transform: rotate({heart.rotation}deg);
-                    "
-                />
-            {/each}
-        </div>
-        
-        <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
-            <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-6xl">💝</div>
-                    <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        Thank You for Registering With Us!
-                    </h1>
-                    <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-                        We appreciate your participation
-                    </p>
-                    <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        We hope you had a wonderful experience with Find Your Date. We wish you all the best!
-                    </p>
-                </div>
-                <div class="flex items-center gap-3 mt-4">
-                    <div class="animate-pulse">
-                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
-                    </div>
-                    <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-                        Thank you for being part of our journey!
-                    </p>
-                    <div class="animate-pulse">
-                        <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-{:else if matchStatus === 'ACCEPTED'}
-
-<div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
-  <!-- Sign Out Button - Top Right -->
-  <div class="absolute top-4 right-4 z-50">
-    <SignOutButton />
-  </div>
-
-  <!-- Floating hearts container (behind everything) -->
-  {#if matchRevealed}
-    <div class="hearts-container">
-      {#each hearts as heart (heart.id)}
-        <img 
-          src="/images/pink-heart.png" 
-          alt="heart"
-          class="floating-heart"
-          style="
-            left: {heart.left}%;
-            animation-duration: {heart.duration}s;
-            animation-delay: {heart.delay}s;
-            width: {heart.size}px;
-            height: {heart.size}px;
-            transform: rotate({heart.rotation}deg);
-          "
-        />
-      {/each}
-    </div>
-  {/if}
-
-  {#if matchRevealed && resultStatus === 'match_found'}
-    <div class="flex flex-col items-center justify-center gap-4 text-center px-4 relative z-10">
-      <p class="text-3xl font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-        You've been matched with
-      </p>
-      <p class="text-7xl font-bold typewriter" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-        {displayedName}<span class="cursor">|</span>
-      </p>
-      {#if showPhoneNumber}
-        <div class="phone-container fade-in" style="background-color: var(--primary-color);">
-          <img src="/icons/phone-icon.png" alt="phone" class="phone-icon" />
-          <span class="phone-number"><a class="no-decor" href="https://wa.me/+91{matchedUserPhoneNumber}">{matchedUserPhoneNumber}</a></span>
-        </div>
-        <p class="text-sm opacity-70 mt-2 fade-in" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-          Email: {matchedUserEmail}
-        </p>
-      {/if}
-      {#if showDeclineButton}
-        <button 
-          on:click={handleDecline}
-          class="decline-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer mt-4 fade-in"
-          style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
-        >
-          Decline Match
-        </button>
-      {/if}
-    </div>
-  {:else if resultStatus === 'not_registered'}
+{:else if resultStatus === 'not_registered'}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
       {#if currentAnimation}
         <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
@@ -494,7 +338,7 @@
         </p>
       </div>
     </div>
-  {:else if resultStatus === 'no_match'}
+{:else if resultStatus === 'no_match'}
     <div class="flex flex-col items-center justify-center gap-4 relative z-10">
       <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
       <div class="flex flex-col items-center gap-4 text-center px-4">
@@ -509,48 +353,213 @@
         </p>
       </div>
     </div>
-  {:else if resultStatus === 'match_found'}
-    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
-      <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
-      <div class="flex flex-col items-center gap-4 text-center px-4">
-        {#if currentText}
-          <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-            {currentText}{#if showDots}<span class="dots"></span>{/if}
-          </p>
+{:else if resultStatus === 'match_found'}
+    {#if matchStatus === 'ACCEPTED'}
+      <div class="bg-white flex justify-center items-center w-screen h-screen overflow-hidden relative">
+        <!-- Sign Out Button - Top Right -->
+        <div class="absolute top-4 right-4 z-50">
+          <SignOutButton />
+        </div>
+        <!-- Floating hearts container (behind everything) -->
+        {#if matchRevealed}
+          <div class="hearts-container">
+            {#each hearts as heart (heart.id)}
+              <img 
+                src="/images/pink-heart.png" 
+                alt="heart"
+                class="floating-heart"
+                style="
+                  left: {heart.left}%;
+                  animation-duration: {heart.duration}s;
+                  animation-delay: {heart.delay}s;
+                  width: {heart.size}px;
+                  height: {heart.size}px;
+                  transform: rotate({heart.rotation}deg);
+                "
+              />
+            {/each}
+          </div>
         {/if}
-        {#if showButton}
-          <button 
-            on:click={handleRevealMatch}
-            class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
-            style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
-          >
-            Reveal Match
-          </button>
+        {#if matchRevealed}
+          <div class="flex flex-col items-center justify-center gap-4 text-center px-4 relative z-10">
+            <p class="text-3xl font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+              You've been matched with
+            </p>
+            <p class="text-7xl font-bold typewriter" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+              {displayedName}<span class="cursor">|</span>
+            </p>
+            {#if showPhoneNumber}
+              <div class="phone-container fade-in" style="background-color: var(--primary-color);">
+                <img src="/icons/phone-icon.png" alt="phone" class="phone-icon" />
+                <span class="phone-number"><a class="no-decor" href="https://wa.me/+91{matchedUserPhoneNumber}">{matchedUserPhoneNumber}</a></span>
+              </div>
+              <p class="text-sm opacity-70 mt-2 fade-in" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                Email: {matchedUserEmail}
+              </p>
+            {/if}
+            {#if showDeclineButton}
+              <button 
+                on:click={handleDecline}
+                class="decline-button px-6 py-3 rounded-full text-white text-lg font-bold cursor-pointer mt-4 fade-in"
+                style="font-family: 'Nunito', sans-serif; background-color: var(--secondary-color);"
+              >
+                Decline Match
+              </button>
+            {/if}
+          </div>
+        {:else}
+          <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+            <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+            <div class="flex flex-col items-center gap-4 text-center px-4">
+              {#if currentText}
+                <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                  {currentText}{#if showDots}<span class="dots"></span>{/if}
+                </p>
+              {/if}
+              {#if showButton}
+                <button 
+                  on:click={handleRevealMatch}
+                  class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
+                  style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
+                >
+                  Reveal Match
+                </button>
+              {/if}
+            </div>
+          </div>
         {/if}
       </div>
-    </div>
-  {:else}
-    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
-      <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
-      <div class="flex flex-col items-center gap-4 text-center px-4">
-        {#if currentText}
-          <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
-            {currentText}{#if showDots}<span class="dots"></span>{/if}
-          </p>
-        {/if}
-        {#if showButton}
-          <button 
-            on:click={handleRevealMatch}
-            class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
-            style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
-          >
-            Reveal Match
-          </button>
-        {/if}
+    {:else if matchStatus === 'PENDING'}
+      <!-- PENDING Status Page - Round 2 Application -->
+      <div class="flex items-center justify-center min-h-screen px-4">
+          <!-- Floating Hearts Background -->
+          <div class="floating-hearts-container">
+              {#each hearts as heart (heart.id)}
+                  <img 
+                      src="/images/heart.png"
+                      alt="heart"
+                      class="floating-heart-pending"
+                      style="
+                          left: {heart.left}%;
+                          animation-duration: {heart.duration}s;
+                          animation-delay: {heart.delay}s;
+                          width: {heart.size}px;
+                          height: {heart.size}px;
+                          transform: rotate({heart.rotation}deg);
+                      "
+                  />
+              {/each}
+          </div>
+          
+          <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
+              <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
+                  <div class="flex flex-col items-center gap-4">
+                      <div class="text-6xl">💕</div>
+                      <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          Thank You for Applying!
+                      </h1>
+                      <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                          Round 2 will start very soon
+                      </p>
+                      <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          We're preparing the next round of matches. You'll be notified when Round 2 begins!
+                      </p>
+                  </div>
+                  <div class="flex items-center gap-3 mt-4">
+                      <div class="animate-pulse">
+                          <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                      </div>
+                      <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          Stay tuned for updates!
+                      </p>
+                      <div class="animate-pulse">
+                          <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                      </div>
+                  </div>
+              </div>
+          </div>
       </div>
+    {:else if matchStatus === 'DECLINED'}
+      <!-- DECLINED Status Page -->
+      <div class="flex items-center justify-center min-h-screen px-4">
+          <!-- Floating Hearts Background -->
+          <div class="floating-hearts-container">
+              {#each hearts as heart (heart.id)}
+                  <img 
+                      src="/images/heart.png"
+                      alt="heart"
+                      class="floating-heart-pending"
+                      style="
+                          left: {heart.left}%;
+                          animation-duration: {heart.duration}s;
+                          animation-delay: {heart.delay}s;
+                          width: {heart.size}px;
+                          height: {heart.size}px;
+                          transform: rotate({heart.rotation}deg);
+                      "
+                  />
+              {/each}
+          </div>
+          
+          <div class="flex flex-col items-center justify-center gap-8 max-w-3xl w-full relative z-10 text-center">
+              <div class="flex flex-col items-center gap-6 px-6 py-8 rounded-2xl" style="background-color: rgba(255, 255, 255, 0.9);">
+                  <div class="flex flex-col items-center gap-4">
+                      <div class="text-6xl">💝</div>
+                      <h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          Thank You for Registering With Us!
+                      </h1>
+                      <p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+                          We appreciate your participation
+                      </p>
+                      <p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          We hope you had a wonderful experience with Find Your Date. We wish you all the best!
+                      </p>
+                  </div>
+                  <div class="flex items-center gap-3 mt-4">
+                      <div class="animate-pulse">
+                          <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                      </div>
+                      <p class="text-sm font-semibold italic" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+                          Thank you for being part of our journey!
+                      </p>
+                      <div class="animate-pulse">
+                          <img src="/images/heart.png" alt="heart" class="w-8 h-8" />
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    {:else}
+      <!-- Default match_found UI (Reveal Match etc) -->
+      <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+        <canvas bind:this={canvas} class="w-[900px] h-[900px] max-w-[90vw] max-h-[75vh] object-contain shrink-0"></canvas>
+        <div class="flex flex-col items-center gap-4 text-center px-4">
+          {#if currentText}
+            <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+              {currentText}{#if showDots}<span class="dots"></span>{/if}
+            </p>
+          {/if}
+          {#if showButton}
+            <button 
+              on:click={handleRevealMatch}
+              class="reveal-button px-8 py-4 rounded-full text-white text-xl font-bold cursor-pointer"
+              style="font-family: 'Nunito', sans-serif; background-color: var(--primary-color);"
+            >
+              Reveal Match
+            </button>
+          {/if}
+        </div>
+      </div>
+    {/if}
+{:else}
+    <div class="flex flex-col items-center justify-center gap-4 relative z-10">
+      <p class="text-2xl font-semibold" style="color: var(--primary-color); font-family: 'Nunito', sans-serif;">
+        Something went wrong loading your result.
+      </p>
+      <p class="text-lg font-bold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+        Please refresh or try again later.
+      </p>
     </div>
-  {/if}
-</div>
 {/if}
 
 <!-- Round 2 Choice Modal -->
