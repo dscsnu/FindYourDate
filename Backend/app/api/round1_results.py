@@ -31,6 +31,7 @@ class Round1ResultResponse(BaseModel):
     status: str  # "not_registered", "match_found", "no_match", "not_published"
     match: Optional[MatchResult] = None
     message: Optional[str] = None
+    match_status: Optional[str] = None  # "ACCEPTED", "PENDING", "DECLINED"
 
 class UpdateMatchStatusRequest(BaseModel):
     user_email: str
@@ -112,16 +113,25 @@ async def check_round1_result(email: str):
     # Find user's match
     match = find_user_match(email, matches_data)
     
+    # Get user's match status from match_history
+    match_history = db.query(MatchHistory).filter(
+        MatchHistory.user_id == user.id
+    ).order_by(MatchHistory.created_at.desc()).first()
+    
+    user_match_status = match_history.status.value if match_history else "ACCEPTED"
+    
     if match:
         return Round1ResultResponse(
             status="match_found",
             match=MatchResult(**match),
-            message="Congratulations! We found your match!"
+            message="Congratulations! We found your match!",
+            match_status=user_match_status
         )
     else:
         return Round1ResultResponse(
             status="no_match",
-            message="You will be automatically enrolled in Round 2!"
+            message="You will be automatically enrolled in Round 2!",
+            match_status=user_match_status
         )
 
 @router.post("/update-match-status")

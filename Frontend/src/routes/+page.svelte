@@ -3,12 +3,14 @@
 	import { onMount } from 'svelte';
 	import { authStore } from '$lib/stores/auth';
 	import { api, API_BASE_URL } from '$lib/api';
+    import { configStore } from '$lib/stores/config';
 
 	let hearts = $state([]);
 	let heartIdCounter = 0;
 	const MAX_HEARTS = 4;
 	let loading = $state(false);
 	let checkingStatus = $state(true);
+  let round1ResultPublished = $state(false);
 
 	async function checkUserStatus(session) {
 		try {
@@ -22,7 +24,9 @@
 			}
 
 			const data = await response.json();
-			
+				if(round1ResultPublished){
+					goto('/endScreen');
+				}
 			// Redirect based on status
 			if (data.redirect_to === 'form') {
 				// User needs to fill form
@@ -82,6 +86,9 @@
 	onMount(async () => {
 		// Load existing session if available
 		await authStore.loadSession();
+		        configStore.subscribe(config => {
+            round1ResultPublished = config.round1ResultPublished;
+    });
 		
 		// Check if user is already authenticated
 		const currentSession = await new Promise(resolve => {
