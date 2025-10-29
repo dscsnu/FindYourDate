@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.db.database import get_db
 from app.models.user_model import User
 from app.models.match_history import MatchHistory, MatchStatus
 from pydantic import BaseModel
@@ -9,11 +8,19 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 router = APIRouter()
 
 # Configuration - set these via environment variables or config
 ROUND1_RESULTS_PUBLISHED = os.getenv("ROUND1_RESULTS_PUBLISHED", "false").lower() == "true"
 MATCHES_JSON_PATH = os.getenv("MATCHES_JSON_PATH", "matches_20251029_043722.json")  # Default to latest
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine)
+db = SessionLocal()
 
 class MatchResult(BaseModel):
     name: str
@@ -65,7 +72,7 @@ def find_user_match(user_email: str, matches_data: dict):
     return None
 
 @router.get("/check-result", response_model=Round1ResultResponse)
-async def check_round1_result(email: str, db: Session = Depends(get_db)):
+async def check_round1_result(email: str):
     """
     Check Round 1 results for a user
     
@@ -119,8 +126,7 @@ async def check_round1_result(email: str, db: Session = Depends(get_db)):
 
 @router.post("/update-match-status")
 async def update_match_status(
-    request: UpdateMatchStatusRequest,
-    db: Session = Depends(get_db)
+    request: UpdateMatchStatusRequest
 ):
     """
     Update user's match status based on Round 2 decision
