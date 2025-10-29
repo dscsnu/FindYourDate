@@ -11,9 +11,7 @@
 	let loading = $state(false);
 	let checkingStatus = $state(true);
   let round1ResultPublished = $state(false);
-	if(round1ResultPublished){
-		goto('/endScreen');
-	}
+
 	async function checkUserStatus(session) {
 		try {
 			// Check user status in backend using cookie authentication
@@ -26,7 +24,9 @@
 			}
 
 			const data = await response.json();
-			
+				if(round1ResultPublished){
+					goto('/endScreen');
+				}
 			// Redirect based on status
 			if (data.redirect_to === 'form') {
 				// User needs to fill form
@@ -86,6 +86,9 @@
 	onMount(async () => {
 		// Load existing session if available
 		await authStore.loadSession();
+		        configStore.subscribe(config => {
+            round1ResultPublished = config.round1ResultPublished;
+    });
 		
 		// Check if user is already authenticated
 		const currentSession = await new Promise(resolve => {
