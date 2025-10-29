@@ -24,10 +24,17 @@
 			}
 
 			const data = await response.json();
-				if(round1ResultPublished){
-					goto('/endScreen');
+			
+			// If Round 1 results are published, always take to endScreen
+			if(round1ResultPublished){
+				if (data.user_id) {
+					sessionStorage.setItem('user_id', data.user_id);
 				}
-			// Redirect based on status
+				goto('/endScreen');
+				return;
+			}
+			
+			// Redirect based on status (only if results not published)
 			if (data.redirect_to === 'form') {
 				// User needs to fill form
 				goto('/userForm');
