@@ -1,4 +1,3 @@
-from turtle import goto
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models.user_model import User
@@ -95,7 +94,10 @@ async def check_round1_result(email: str, db: Session = Depends(get_db)):
     # Check if user is registered
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        goto('/user-form')
+        return Round1ResultResponse(
+            status="not_registered",
+            message="Redirecting to user form for Round 2 registration."
+        )
 
     # Check if user is registered for Round 2 and has _ROUND2 suffix
     if user.name.endswith("_ROUND2"):
@@ -106,7 +108,10 @@ async def check_round1_result(email: str, db: Session = Depends(get_db)):
                 message="Waiting for Round 2 results."
             )
         else:
-            goto('/user-form')
+            return Round1ResultResponse(
+                status="not_registered",
+                message="Redirecting to user form for Round 2 registration."
+            )
 
     # Load matches JSON
     matches_file = get_latest_matches_json()

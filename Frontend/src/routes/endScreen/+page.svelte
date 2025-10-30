@@ -62,7 +62,9 @@
 {:else if resultStatus === 'not_published'}
   <div class="center"><p>Results not published yet.</p></div>
 {:else if resultStatus === 'not_registered'}
-  <div class="center"><p>You’re not registered for Round 1. Stay tuned for Round 2!</p></div>
+  <script>
+    goto('/userForm');
+  </script>
 {:else if resultStatus === 'no_match'}
   <div class="center"><p>No match found. You’re automatically enrolled in Round 2!</p></div>
 {:else if resultStatus === 'match_found'}
