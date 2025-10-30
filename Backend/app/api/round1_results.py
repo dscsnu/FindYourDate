@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from typing import Optional
+from app.db.qdrant_client import qdrant, get_embedding
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -102,11 +103,18 @@ async def check_round1_result(email: str):
     # Check if user is registered for Round 2 and has _ROUND2 suffix
     if user.name.endswith("_ROUND2"):
         # Check if user has embedding in vector DB
-        if has_embedding_in_vector_db(user.email):  # Implement this function
-            return Round1ResultResponse(
-                status="waiting_for_results",
-                message="Waiting for Round 2 results."
-            )
+        try:
+            embedding = get_embedding(user.email)
+
+            has_embedding = embedding is not None
+            if has_embedding:
+                return Round1ResultResponse(
+                    status="waiting_for_results",
+                    message="Waiting for Round 2 results."
+                )
+        except Exception as e:
+            # If Qdrant check fails, assume no embedding
+            pass
         else:
             return Round1ResultResponse(
                 status="not_registered",
