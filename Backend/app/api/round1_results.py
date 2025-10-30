@@ -73,7 +73,7 @@ def find_user_match(user_email: str, matches_data: dict):
     return None
 
 @router.get("/check-result", response_model=Round1ResultResponse)
-async def check_round1_result(email: str, db: Session = Depends(get_db)):
+async def check_round1_result(email: str):
     """
     Check Round 1 results for a user
     
