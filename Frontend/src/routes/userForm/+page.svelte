@@ -363,6 +363,11 @@
 								Female
 							</span>
 						</button>
+						{#if formData.gender === 'male'}
+							<div class="mt-4 p-4 rounded-xl bg-yellow-100 text-yellow-800 text-center font-semibold" style="font-family: 'Nunito', sans-serif;">
+								Due to gender imbalance, we cannot guarantee you a pair.
+							</div>
+						{/if}
 					</div>
 				</div>
 			{/if}
