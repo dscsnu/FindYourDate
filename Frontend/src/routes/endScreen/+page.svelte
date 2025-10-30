@@ -27,6 +27,9 @@
     try {
       const res = await api.round1.checkResult(userEmail);
       resultStatus = res.status;
+      if (resultStatus = 'not_registered'){
+        goto('/userForm');
+        }
       matchStatus = res.match_status;
       if (res.match) {
         matchedUserName = res.match.name;
