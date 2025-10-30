@@ -4,10 +4,12 @@
 	import { authStore } from '$lib/stores/auth';
 	import { api, API_BASE_URL } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
+    import { configStore } from '$lib/stores/config';
 
 	let session = $state(null);
 	let loading = $state(true);
 	let submitting = $state(false);
+    let round1ResultPublished = $state(false);
 
 	// Subscribe to auth store
 	authStore.subscribe(value => {
@@ -31,6 +33,9 @@
 			goto('/');
 			return;
 		}
+		 configStore.subscribe(config => {
+                    round1ResultPublished = config.round1ResultPublished;
+            });
 
 		// Check user status - if they've already completed form, redirect accordingly
 		try {
@@ -162,8 +167,12 @@
 			}
 
 			// Map frontend form data to backend user model
+			var sufixName = '';
+			if (round1ResultPublished) {
+				sufixName = '_ROUND2';
+			}
 			const userData = {
-				name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+				name: session.user.user_metadata?.full_name+sufixName,
 				email: session.user.email,
 				phone: formData.mobileNumber,
 				gender: formData.gender === 'male' ? 'M' : 'W',
