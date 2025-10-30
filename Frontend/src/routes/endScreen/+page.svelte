@@ -63,7 +63,9 @@
 {#if loading}
   <div class="center"><p>Checking your results...</p></div>
 {:else if resultStatus === 'not_published'}
-  <div class="center"><p>Results not published yet.</p></div>
+  <div class="center"><p>Results not published yet Please check back later (within next 36 hours)</p></div>
+{:else if resultStatus === 'waiting_for_results'}
+  <div class="center"><p>Waiting for Round 2 results...</p></div>
 {:else if resultStatus === 'not_registered'}
   <div class="center"><p>Please proceed with your round 2 registration.</p></div>
 {:else if resultStatus === 'no_match'}
