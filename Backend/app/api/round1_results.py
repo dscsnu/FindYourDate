@@ -1,3 +1,4 @@
+from turtle import goto
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models.user_model import User
@@ -73,7 +74,7 @@ def find_user_match(user_email: str, matches_data: dict):
     return None
 
 @router.get("/check-result", response_model=Round1ResultResponse)
-async def check_round1_result(email: str):
+async def check_round1_result(email: str, db: Session = Depends(get_db)):
     """
     Check Round 1 results for a user
     
@@ -94,11 +95,19 @@ async def check_round1_result(email: str):
     # Check if user is registered
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        return Round1ResultResponse(
-            status="not_registered",
-            message="You are not registered. Stay tuned for Round 2!"
-        )
-    
+        goto('/user-form')
+
+    # Check if user is registered for Round 2 and has _ROUND2 suffix
+    if user.name.endswith("_ROUND2"):
+        # Check if user has embedding in vector DB
+        if has_embedding_in_vector_db(user.email):  # Implement this function
+            return Round1ResultResponse(
+                status="waiting_for_results",
+                message="Waiting for Round 2 results."
+            )
+        else:
+            goto('/user-form')
+
     # Load matches JSON
     matches_file = get_latest_matches_json()
     if not matches_file:
