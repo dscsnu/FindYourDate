@@ -1,75 +1,105 @@
 import os
-from supabase import create_client
+from typing import Optional
+from urllib.parse import quote
+
 from dotenv import load_dotenv
-from fastapi import APIRouter, HTTPException, Response, Cookie, Request
+from fastapi import APIRouter, Cookie, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from typing import Optional
+
+from app.core.auth import (
+    ALLOWED_EMAIL_DOMAINS,
+    AuthUser,
+    email_allowed,
+    forget_token,
+    get_current_user,
+    supabase,
+)
 
 load_dotenv()
 
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+backend_url = os.environ.get("BACKEND_URL", "http://localhost:1386").rstrip("/")
 
-supabase = create_client(url, key)
-router = APIRouter(prefix='/auth', tags=["authentication"])
+# Cookies must carry Secure over HTTPS or the browser drops them; over plain
+# http (local dev) Secure would drop them instead. Follow the frontend scheme.
+COOKIE_SECURE = os.getenv(
+    "COOKIE_SECURE", "true" if frontend_url.startswith("https://") else "false"
+).lower() == "true"
+# "lax" is fine while the API shares a registrable domain with the frontend.
+# Put the API on an unrelated domain and this has to become "none".
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").lower()
+COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN") or None
 
+REFRESH_MAX_AGE = 60 * 60 * 24 * 30
 
-class GoogleAuthRequest(BaseModel):
-    id_token: str
-
-
-class SessionResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    expires_in: int
-    expires_at: int
-    token_type: str
-    user: dict
+router = APIRouter(prefix="/auth", tags=["authentication"])
 
 
 class CallbackRequest(BaseModel):
     code: str
 
 
-@router.get('/google/login')
+def _set_session_cookies(response: Response, session) -> None:
+    response.set_cookie(
+        key="access_token",
+        value=session.access_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=session.expires_in,
+        domain=COOKIE_DOMAIN,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=session.refresh_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        max_age=REFRESH_MAX_AGE,
+        domain=COOKIE_DOMAIN,
+        path="/",
+    )
+
+
+def _clear_session_cookies(response: Response) -> None:
+    for key in ("access_token", "refresh_token"):
+        response.delete_cookie(key=key, path="/", domain=COOKIE_DOMAIN)
+
+
+@router.get("/google/login")
 def google_login(redirect_to: Optional[str] = None):
     """
     Initiates Google OAuth flow.
     Returns the OAuth URL that the frontend should redirect to.
     """
     try:
-        # Use environment variable for backend URL, with proper fallback
-        backend_url = os.environ.get('BACKEND_URL', 'http://localhost:1386')
-        callback_url = f"{backend_url}/auth/google/callback"
-        
-        # Determine final redirect destination
-        final_redirect = redirect_to or f"{frontend_url}/auth/callback"
-        
-        response = supabase.auth.sign_in_with_oauth({
-            "provider": "google",
-            "options": {
-                "redirect_to": callback_url,
-                "query_params": {
-                    "redirect_to": final_redirect
-                }
-            }
-        })
+        # Routers are mounted under /api, so the callback lives there too.
+        callback_url = f"{backend_url}/api/auth/google/callback"
 
-        return {
-            "url": response.url
-        }
+        # Only ever hand Supabase our own frontend as the landing spot;
+        # an attacker-supplied redirect_to would be an open redirect.
+        final_redirect = f"{frontend_url}/auth/callback"
+
+        options = {"redirect_to": callback_url}
+        if ALLOWED_EMAIL_DOMAINS:
+            # Hints Google's account chooser; the real check is server side.
+            options["query_params"] = {"hd": ALLOWED_EMAIL_DOMAINS[0]}
+
+        response = supabase.auth.sign_in_with_oauth(
+            {"provider": "google", "options": options}
+        )
+
+        return {"url": response.url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to generate auth URL: {str(e)}")
 
 
-@router.get('/google/callback')
+@router.get("/google/callback")
 def google_callback(
-    response: Response,
     code: Optional[str] = None,
     error: Optional[str] = None,
-    redirect_to: Optional[str] = None
 ):
     """
     Handles the OAuth callback from Google.
@@ -77,173 +107,75 @@ def google_callback(
     Tokens are NEVER exposed to frontend JavaScript.
     """
     if error:
-        return RedirectResponse(url=f"{frontend_url}/?error={error}")
-    
+        return RedirectResponse(url=f"{frontend_url}/?error={quote(error)}")
+
     if not code:
         return RedirectResponse(url=f"{frontend_url}/?error=missing_code")
-    
+
     try:
-        # Exchange code for session
-        auth_response = supabase.auth.exchange_code_for_session({
-            "auth_code": code
-        })
-        
-        if not auth_response.session:
-            return RedirectResponse(url=f"{frontend_url}/?error=auth_failed")
-        
-        # Create redirect response
-        redirect_url = f"{frontend_url}/auth/callback?success=true"
-        redirect_response = RedirectResponse(url=redirect_url)
-        
-        # Set httpOnly cookies (NOT accessible from JavaScript)
-        # This keeps tokens secure and prevents XSS attacks
-        redirect_response.set_cookie(
-            key="access_token",
-            value=auth_response.session.access_token,
-            httponly=True,  # Cannot be accessed by JavaScript
-            secure=False,   # Set to True in production with HTTPS
-            samesite="lax", # CSRF protection
-            max_age=auth_response.session.expires_in,
-            path="/"
-        )
-        
-        redirect_response.set_cookie(
-            key="refresh_token",
-            value=auth_response.session.refresh_token,
-            httponly=True,
-            secure=False,   # Set to True in production with HTTPS
-            samesite="lax",
-            max_age=60 * 60 * 24 * 30,  # 30 days
-            path="/"
-        )
-        
-        return redirect_response
-        
-    except Exception as e:
-        return RedirectResponse(url=f"{frontend_url}/?error={str(e)}")
+        auth_response = supabase.auth.exchange_code_for_session({"auth_code": code})
+    except Exception:
+        return RedirectResponse(url=f"{frontend_url}/?error=auth_failed")
+
+    if not auth_response.session or not auth_response.user:
+        return RedirectResponse(url=f"{frontend_url}/?error=auth_failed")
+
+    if not email_allowed(auth_response.user.email or ""):
+        return RedirectResponse(url=f"{frontend_url}/?error=domain_not_allowed")
+
+    redirect_response = RedirectResponse(url=f"{frontend_url}/auth/callback?success=true")
+    _set_session_cookies(redirect_response, auth_response.session)
+    return redirect_response
 
 
-@router.post('/session/exchange')
-def exchange_session(callback_request: CallbackRequest):
-    """
-    Exchange OAuth code for session tokens.
-    Used when frontend handles the callback directly.
-    """
-    try:
-        response = supabase.auth.exchange_code_for_session({
-            "auth_code": callback_request.code
-        })
-        
-        if not response.session:
-            raise HTTPException(status_code=401, detail="Failed to exchange code for session")
-        
-        return {
-            "access_token": response.session.access_token,
-            "refresh_token": response.session.refresh_token,
-            "expires_in": response.session.expires_in,
-            "expires_at": response.session.expires_at,
-            "token_type": response.session.token_type,
-            "user": {
-                "id": response.user.id,
-                "email": response.user.email,
-                "user_metadata": response.user.user_metadata,
-                "app_metadata": response.user.app_metadata,
-                "created_at": response.user.created_at
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Exchange error: {str(e)}")
-
-
-@router.post('/refresh')
+@router.post("/refresh")
 def refresh_session(
     response: Response,
-    refresh_token: Optional[str] = Cookie(None)
+    refresh_token: Optional[str] = Cookie(None),
 ):
     """
     Refresh an expired session using refresh token from httpOnly cookie.
     """
     if not refresh_token:
         raise HTTPException(status_code=401, detail="No refresh token found")
-    
+
     try:
         auth_response = supabase.auth.refresh_session(refresh_token)
+    except Exception:
+        _clear_session_cookies(response)
+        raise HTTPException(status_code=401, detail="Failed to refresh session")
 
-        if not auth_response.session:
-            raise HTTPException(status_code=401, detail="Failed to refresh session")
+    if not auth_response.session:
+        _clear_session_cookies(response)
+        raise HTTPException(status_code=401, detail="Failed to refresh session")
 
-        # Update cookies with new tokens
-        response.set_cookie(
-            key="access_token",
-            value=auth_response.session.access_token,
-            httponly=True,
-            secure=False,  # Set to True in production
-            samesite="lax",
-            max_age=auth_response.session.expires_in,
-            path="/"
-        )
-        
-        response.set_cookie(
-            key="refresh_token",
-            value=auth_response.session.refresh_token,
-            httponly=True,
-            secure=False,  # Set to True in production
-            samesite="lax",
-            max_age=60 * 60 * 24 * 30,
-            path="/"
-        )
-
-        return {"message": "Session refreshed successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Refresh error: {str(e)}")
+    _set_session_cookies(response, auth_response.session)
+    return {"message": "Session refreshed successfully"}
 
 
-@router.get('/user')
+@router.get("/user")
 def get_user(access_token: Optional[str] = Cookie(None)):
     """
     Get current user information using access token from httpOnly cookie.
     """
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    try:
-        response = supabase.auth.get_user(access_token)
-
-        if not response.user:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-
-        return {
-            "user": {
-                "id": response.user.id,
-                "email": response.user.email,
-                "user_metadata": response.user.user_metadata,
-                "app_metadata": response.user.app_metadata,
-                "created_at": response.user.created_at
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+    user: AuthUser = get_current_user(access_token)
+    return {"user": {"id": user.id, "email": user.email, "name": user.name}}
 
 
-@router.post('/logout')
+@router.post("/logout")
 def logout(
     response: Response,
-    access_token: Optional[str] = Cookie(None)
+    access_token: Optional[str] = Cookie(None),
 ):
     """
     Sign out user and clear httpOnly cookies.
     """
-    try:
-        if access_token:
+    if access_token:
+        forget_token(access_token)
+        try:
             supabase.auth.sign_out(access_token)
-        
-        # Clear cookies
-        response.delete_cookie(key="access_token", path="/")
-        response.delete_cookie(key="refresh_token", path="/")
-        
-        return {"message": "Successfully logged out"}
-    except Exception as e:
-        # Still clear cookies even if Supabase signout fails
-        response.delete_cookie(key="access_token", path="/")
-        response.delete_cookie(key="refresh_token", path="/")
-        return {"message": "Logged out (with errors)", "error": str(e)}
+        except Exception:
+            pass  # The cookies still get cleared below.
+
+    _clear_session_cookies(response)
+    return {"message": "Successfully logged out"}

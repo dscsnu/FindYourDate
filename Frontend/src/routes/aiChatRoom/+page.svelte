@@ -1,8 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
-	import { API_BASE_URL } from '$lib/api';
+	import { api } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
 
 	let session = $state(null);
@@ -102,14 +103,8 @@
 		// Load session if exists
 		await authStore.loadSession();
 
-		// Check if user is authenticated
-		const currentSession = await new Promise(resolve => {
-			const unsubscribe = authStore.subscribe(value => {
-				resolve(value);
-				unsubscribe();
-			});
-		});
-		
+		const currentSession = get(authStore);
+
 		if (!currentSession?.authenticated) {
 			// Redirect to home if not authenticated
 			goto('/');
@@ -120,26 +115,20 @@
 
 		// Check user status
 		try {
-			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(userEmail)}`, {
-				credentials: 'include'
-			});
+			const data = await api.status.userStatus();
 
-			if (response.ok) {
-				const data = await response.json();
-				
-				if (data.redirect_to === 'form') {
-					// User hasn't completed form yet
-					goto('/userForm');
-					return;
-				} else if (data.redirect_to === 'complete') {
-					// User has already completed chat
-					sessionStorage.setItem('user_id', data.user_id);
-					goto('/endScreen');
-					return;
-				}
-				// If redirect_to === 'chat', stay on this page
+			if (data.redirect_to === 'form') {
+				// User hasn't completed form yet
+				goto('/userForm');
+				return;
+			} else if (data.redirect_to === 'complete') {
+				// User has already completed chat
 				sessionStorage.setItem('user_id', data.user_id);
+				goto('/endScreen');
+				return;
 			}
+			// If redirect_to === 'chat', stay on this page
+			sessionStorage.setItem('user_id', data.user_id);
 		} catch (error) {
 			console.error('Error checking user status:', error);
 		}
@@ -159,16 +148,7 @@
 		isTyping = true;
 		
 		try {
-			const response = await fetch(`${API_BASE_URL}/chat/next-question`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					user_email: userEmail,
-					chat_history: chatHistory
-				})
-			});
+			const response = await api.chat.nextQuestion(chatHistory);
 
 			if (response.status === 429) {
 				// Rate limited

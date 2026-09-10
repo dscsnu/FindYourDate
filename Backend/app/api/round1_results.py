@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.auth import AuthUser, get_current_user
 from app.db.database import get_db
 from app.db.qdrant_client import get_embedding
 from app.models.match_history import MatchHistory, MatchStatus
@@ -31,7 +32,7 @@ class Round1ResultResponse(BaseModel):
     match_status: Optional[str] = None  # "ACCEPTED", "PENDING", "DECLINED"
 
 class UpdateMatchStatusRequest(BaseModel):
-    user_email: str
+    # The user is taken from the session, never from the request body.
     apply_round2: bool  # True for PENDING, False for REJECTED
 
 def get_latest_matches_json():
@@ -83,17 +84,21 @@ def find_user_match(user_email: str, matches_data: dict):
     return None
 
 @router.get("/check-result", response_model=Round1ResultResponse)
-def check_round1_result(email: str, db: Session = Depends(get_db)):
+def check_round1_result(
+    caller: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
-    Check Round 1 results for a user
-    
+    Check Round 1 results for the signed-in user
+
     Returns:
     - not_published: Results not published yet
     - not_registered: User not registered
     - match_found: Match found with details
     - no_match: No match found (automatic Round 2)
     """
-    
+    email = caller.email
+
     # Check if results are published
     if not ROUND1_RESULTS_PUBLISHED:
         return Round1ResultResponse(
@@ -160,17 +165,17 @@ def check_round1_result(email: str, db: Session = Depends(get_db)):
 @router.post("/update-match-status")
 def update_match_status(
     request: UpdateMatchStatusRequest,
+    caller: AuthUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Update user's match status based on Round 2 decision
-    
+    Update the signed-in user's match status based on their Round 2 decision
+
     - apply_round2=True: Set status to PENDING (Apply Round 2)
     - apply_round2=False: Set status to REJECTED (No Round 2)
     """
-    
-    # Get user
-    user = db.query(User).filter(User.email == request.user_email).first()
+
+    user = db.query(User).filter(User.email == caller.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     

@@ -5,9 +5,7 @@ import { api } from '$lib/api';
 interface User {
 	id: string;
 	email: string;
-	user_metadata: Record<string, any>;
-	app_metadata: Record<string, any>;
-	created_at: string;
+	name: string | null;
 }
 
 interface Session {

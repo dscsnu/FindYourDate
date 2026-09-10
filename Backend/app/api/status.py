@@ -1,61 +1,31 @@
-import os
-from typing import Optional
-
-from fastapi import APIRouter, Cookie, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from supabase import create_client
 
+from app.core.auth import AuthUser, get_current_user
 from app.db.database import get_db
 from app.db.qdrant_client import get_embedding
 from app.models.user_model import User
 
 router = APIRouter(tags=["status"])
 
-# Initialize Supabase client
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-
-if not url or not key:
-    raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
-
-supabase = create_client(url, key)
-
-
-def verify_auth(access_token: Optional[str] = Cookie(None)):
-    """Verify authentication using httpOnly cookie"""
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    try:
-        user_response = supabase.auth.get_user(access_token)
-        if not user_response or not user_response.user:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return user_response.user
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
-
 
 @router.get("/user-status")
 def check_user_status(
-    email: str,
+    caller: AuthUser = Depends(get_current_user),
     db: Session = Depends(get_db),
-    _auth=Depends(verify_auth),
 ):
     """
-    Check user's status and determine where they should be redirected.
-    
+    Check the signed-in user's status and where they should be redirected.
+
     Returns:
     - exists_in_db: bool - Whether user exists in database
     - has_embedding: bool - Whether user has embedding in Qdrant
     - redirect_to: str - Where to redirect: "form", "chat", or "complete"
     - user_id: int (optional) - User ID if exists in database
     """
-    
-    # Check if user exists in database
-    user = db.query(User).filter(User.email == email).first()
-    
+
+    user = db.query(User).filter(User.email == caller.email).first()
+
     if not user:
         # User doesn't exist in DB - needs to fill form
         return {

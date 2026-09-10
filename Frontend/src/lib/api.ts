@@ -44,40 +44,75 @@ export const api = {
 	
 	// Users endpoints
 	users: {
-		// Add user endpoints here as needed
+		// The backend takes the email from the session cookie, not the body.
+		create: async (profile: Record<string, unknown>) => {
+			const response = await fetch(`${API_BASE_URL}/users/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify(profile)
+			});
+			if (!response.ok) {
+				const error = await response.json().catch(() => ({}));
+				throw new Error(detailToMessage(error.detail) || 'Failed to create user');
+			}
+			return response.json();
+		}
 	},
-	
+
+	// Status endpoints
+	status: {
+		userStatus: async () => {
+			const response = await fetch(`${API_BASE_URL}/status/user-status`, {
+				credentials: 'include'
+			});
+			if (!response.ok) throw new Error('Failed to check user status');
+			return response.json();
+		}
+	},
+
 	// Chat endpoints
 	chat: {
-		// Add chat endpoints here as needed
+		nextQuestion: async (chatHistory: Array<{ q: string; a: string }>) => {
+			return fetch(`${API_BASE_URL}/chat/next-question`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({ chat_history: chatHistory })
+			});
+		}
 	},
-	
+
 	// Round 1 Results endpoints
 	round1: {
-		checkResult: async (email: string) => {
-			const response = await fetch(`${API_BASE_URL}/round1/check-result?email=${encodeURIComponent(email)}`, {
+		checkResult: async () => {
+			const response = await fetch(`${API_BASE_URL}/round1/check-result`, {
 				credentials: 'include',
 			});
 			if (!response.ok) throw new Error('Failed to check Round 1 results');
 			return response.json();
 		},
-		
-		updateMatchStatus: async (email: string, applyRound2: boolean) => {
+
+		updateMatchStatus: async (applyRound2: boolean) => {
 			const response = await fetch(`${API_BASE_URL}/round1/update-match-status`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 				credentials: 'include',
-				body: JSON.stringify({
-					user_email: email,
-					apply_round2: applyRound2
-				})
+				body: JSON.stringify({ apply_round2: applyRound2 })
 			});
 			if (!response.ok) throw new Error('Failed to update match status');
 			return response.json();
 		}
 	}
 };
+
+/** FastAPI validation errors arrive as an array, which renders as [object Object]. */
+function detailToMessage(detail: unknown): string {
+	if (typeof detail === 'string') return detail;
+	if (Array.isArray(detail)) return detail.map((d) => d?.msg ?? String(d)).join(', ');
+	return '';
+}
 
 export { API_BASE_URL };

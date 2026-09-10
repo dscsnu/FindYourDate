@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { get } from 'svelte/store';
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/stores/auth';
   import { api } from '$lib/api';
@@ -18,14 +19,12 @@
 
   onMount(async () => {
     await authStore.loadSession();
-    const session = await new Promise(resolve => {
-      const unsub = authStore.subscribe(v => { resolve(v); unsub(); });
-    });
+    const session = get(authStore);
     if (!session?.authenticated) return goto('/');
     userEmail = session.user.email;
 
     try {
-      const res = await api.round1.checkResult(userEmail);
+      const res = await api.round1.checkResult();
       resultStatus = res.status;
       if (resultStatus === 'not_registered') {
         goto('/userForm');
@@ -46,7 +45,7 @@
 
   async function handleRound2Choice(apply: boolean) {
     try {
-      await api.round1.updateMatchStatus(userEmail, apply);
+      await api.round1.updateMatchStatus(apply);
       showModal = false;
       if (apply) {
         round2Applied = true;

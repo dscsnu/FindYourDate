@@ -13,19 +13,11 @@
 	let checkingStatus = $state(true);
   let round1ResultPublished = $state(false);
 
-	async function checkUserStatus(session) {
+	async function checkUserStatus() {
 		try {
-			// Check user status in backend using cookie authentication
-			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(session.user.email)}`, {
-				credentials: 'include'
-			});
+			// Identity comes from the session cookie, not a query param.
+			const data = await api.status.userStatus();
 
-			if (!response.ok) {
-				throw new Error('Failed to check user status');
-			}
-
-			const data = await response.json();
-			
 			// If Round 1 results are published, always take to endScreen
 			if(round1ResultPublished){
 				if (data.user_id) {
@@ -102,7 +94,7 @@
 		const currentSession = get(authStore);
 
 		if (currentSession?.authenticated) {
-			await checkUserStatus(currentSession);
+			await checkUserStatus();
 		} else {
 			checkingStatus = false;
 		}

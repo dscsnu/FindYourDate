@@ -33,26 +33,20 @@
 
 		// Check user status - if they've already completed form, redirect accordingly
 		try {
-			const response = await fetch(`${API_BASE_URL}/status/user-status?email=${encodeURIComponent(currentSession.user.email)}`, {
-				credentials: 'include'
-			});
+			const data = await api.status.userStatus();
 
-			if (response.ok) {
-				const data = await response.json();
-				
-				if (data.redirect_to === 'chat') {
-					// User has completed form but not chat
-					sessionStorage.setItem('user_id', data.user_id);
-					goto('/aiChatRoom');
-					return;
-				} else if (data.redirect_to === 'complete') {
-					// User has completed everything
-					sessionStorage.setItem('user_id', data.user_id);
-					goto('/endScreen');
-					return;
-				}
-				// If redirect_to === 'form', stay on this page
+			if (data.redirect_to === 'chat') {
+				// User has completed form but not chat
+				sessionStorage.setItem('user_id', data.user_id);
+				goto('/aiChatRoom');
+				return;
+			} else if (data.redirect_to === 'complete') {
+				// User has completed everything
+				sessionStorage.setItem('user_id', data.user_id);
+				goto('/endScreen');
+				return;
 			}
+			// If redirect_to === 'form', stay on this page
 		} catch (error) {
 			console.error('Error checking user status:', error);
 			// If check fails, let them fill the form
@@ -160,14 +154,11 @@
 				throw new Error('No authenticated user');
 			}
 
-			// Map frontend form data to backend user model
-			var sufixName = '';
-			if (round1ResultPublished) {
-				sufixName = '_ROUND2';
-			}
+			// Map frontend form data to backend user model. The email comes
+			// from the session cookie on the server, not from here.
+			const suffix = round1ResultPublished ? '_ROUND2' : '';
 			const userData = {
-				name: session.user.user_metadata?.full_name+sufixName,
-				email: session.user.email,
+				name: (session.user.name || session.user.email) + suffix,
 				phone: formData.mobileNumber,
 				gender: formData.gender === 'male' ? 'M' : 'W',
 				orientation: formData.sexuality,
@@ -176,26 +167,7 @@
 				age_preference: formData.agePreference === 'older' ? 1 : (formData.agePreference === 'younger' ? -1 : 0)
 			};
 
-			// Get access token
-			const accessToken = session.access_token;
-
-			// Create user in backend
-			const response = await fetch(`${API_BASE_URL}/users/`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${accessToken}`
-				},
-				body: JSON.stringify(userData)
-			});
-
-			if (!response.ok) {
-				const error = await response.json();
-				throw new Error(error.detail || 'Failed to create user');
-			}
-
-			const createdUser = await response.json();
-			console.log('User created:', createdUser);
+			const createdUser = await api.users.create(userData);
 
 			// Store user ID in session storage for later use
 			sessionStorage.setItem('user_id', createdUser.id);
