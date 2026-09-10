@@ -1,29 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.user_model import User
-from app.db.database import SessionLocal
+from app.db.database import get_db
 
 router = APIRouter(tags=["users"])
-
-
-# Dependency to get DB session
-def get_db():
-    if SessionLocal is None:
-        raise HTTPException(status_code=503, detail="Database is not available")
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# Simple auth dependency - checks if Authorization header exists
-async def verify_auth(authorization: Optional[str] = Header(None)):
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    return authorization.replace("Bearer ", "")
 
 
 class CreateUserRequest(BaseModel):
@@ -53,10 +35,9 @@ class UserResponse(BaseModel):
 
 
 @router.post("/", response_model=UserResponse, status_code=201)
-async def create_user(
-    user_data: CreateUserRequest, 
+def create_user(
+    user_data: CreateUserRequest,
     db: Session = Depends(get_db),
-    token: str = Depends(verify_auth)
 ):
     """
     Create a new user. Requires authentication.
@@ -94,14 +75,14 @@ async def create_user(
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, db: Session = Depends(get_db)):
+def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
 @router.delete("/{user_id}", status_code=204)
-async def delete_user(user_id: int, db: Session = Depends(get_db)):
+def delete_user(user_id: int, db: Session = Depends(get_db)):
     """
     Delete a user by their ID.
     """

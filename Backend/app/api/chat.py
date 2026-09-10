@@ -52,7 +52,7 @@ class NextQuestionResponse(BaseModel):
 
 
 @router.post("/embed-history", response_model=ChatResponse)
-async def embed_chat_history(request: ChatHistoryRequest):
+def embed_chat_history(request: ChatHistoryRequest):
     """
     Process structured chat history (Q&A pairs) and store embeddings in Qdrant.
     """
@@ -74,7 +74,7 @@ async def embed_chat_history(request: ChatHistoryRequest):
 
 
 @router.post("/embed-full-text", response_model=ChatResponse)
-async def embed_full_chat_text(request: FullChatRequest):
+def embed_full_chat_text(request: FullChatRequest):
     """
     Process full chat as single text string and store embeddings in Qdrant.
     """
@@ -94,7 +94,7 @@ async def embed_full_chat_text(request: FullChatRequest):
 
 
 @router.post("/next-question", response_model=NextQuestionResponse)
-async def get_next_question(request: NextQuestionRequest):
+def get_next_question(request: NextQuestionRequest):
     try:
         # Rate limiting: 10 requests per 10 minutes (600 seconds) per user
         if request.user_email:

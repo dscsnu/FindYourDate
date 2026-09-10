@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends, Cookie
-from sqlalchemy.orm import Session
-from typing import Optional
-from supabase import create_client
 import os
+from typing import Optional
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException
+from sqlalchemy.orm import Session
+from supabase import create_client
+
+from app.db.database import get_db
+from app.db.qdrant_client import get_embedding
 from app.models.user_model import User
-from app.db.database import SessionLocal
-from app.db.qdrant_client import qdrant, get_embedding
 
 router = APIRouter(tags=["status"])
 
@@ -18,36 +20,28 @@ if not url or not key:
 
 supabase = create_client(url, key)
 
-def get_db():
-    if SessionLocal is None:
-        raise HTTPException(status_code=503, detail="Database is not available")
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
-
-async def verify_auth(access_token: Optional[str] = Cookie(None)):
+def verify_auth(access_token: Optional[str] = Cookie(None)):
     """Verify authentication using httpOnly cookie"""
     if not access_token:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     try:
-        # Verify token with Supabase
         user_response = supabase.auth.get_user(access_token)
         if not user_response or not user_response.user:
             raise HTTPException(status_code=401, detail="Invalid token")
         return user_response.user
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
 
 
 @router.get("/user-status")
-async def check_user_status(
+def check_user_status(
     email: str,
     db: Session = Depends(get_db),
-    user = Depends(verify_auth)
+    _auth=Depends(verify_auth),
 ):
     """
     Check user's status and determine where they should be redirected.

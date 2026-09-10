@@ -34,7 +34,7 @@ class CallbackRequest(BaseModel):
 
 
 @router.get('/google/login')
-async def google_login(redirect_to: Optional[str] = None):
+def google_login(redirect_to: Optional[str] = None):
     """
     Initiates Google OAuth flow.
     Returns the OAuth URL that the frontend should redirect to.
@@ -65,7 +65,7 @@ async def google_login(redirect_to: Optional[str] = None):
 
 
 @router.get('/google/callback')
-async def google_callback(
+def google_callback(
     response: Response,
     code: Optional[str] = None,
     error: Optional[str] = None,
@@ -124,7 +124,7 @@ async def google_callback(
 
 
 @router.post('/session/exchange')
-async def exchange_session(callback_request: CallbackRequest):
+def exchange_session(callback_request: CallbackRequest):
     """
     Exchange OAuth code for session tokens.
     Used when frontend handles the callback directly.
@@ -156,7 +156,7 @@ async def exchange_session(callback_request: CallbackRequest):
 
 
 @router.post('/refresh')
-async def refresh_session(
+def refresh_session(
     response: Response,
     refresh_token: Optional[str] = Cookie(None)
 ):
@@ -199,7 +199,7 @@ async def refresh_session(
 
 
 @router.get('/user')
-async def get_user(access_token: Optional[str] = Cookie(None)):
+def get_user(access_token: Optional[str] = Cookie(None)):
     """
     Get current user information using access token from httpOnly cookie.
     """
@@ -226,7 +226,7 @@ async def get_user(access_token: Optional[str] = Cookie(None)):
 
 
 @router.post('/logout')
-async def logout(
+def logout(
     response: Response,
     access_token: Optional[str] = Cookie(None)
 ):

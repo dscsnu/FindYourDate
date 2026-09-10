@@ -1,27 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.models.user_model import User
-from app.models.match_history import MatchHistory, MatchStatus
-from pydantic import BaseModel
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Optional
-from app.db.qdrant_client import qdrant, get_embedding
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.db.qdrant_client import get_embedding
+from app.models.match_history import MatchHistory, MatchStatus
+from app.models.user_model import User
 
 router = APIRouter()
 
 # Configuration - set these via environment variables or config
 ROUND1_RESULTS_PUBLISHED = os.getenv("ROUND1_RESULTS_PUBLISHED", "false").lower() == "true"
 MATCHES_JSON_PATH = os.getenv("MATCHES_JSON_PATH", "matches_20251029_043722.json")  # Default to latest
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
-db = SessionLocal()
 
 class MatchResult(BaseModel):
     name: str
@@ -42,15 +38,28 @@ def get_latest_matches_json():
     """Get the path to the latest matches JSON file"""
     backend_dir = Path(__file__).parent.parent.parent
     matches_path = backend_dir / MATCHES_JSON_PATH
-    
+
     if not matches_path.exists():
         # If specified file doesn't exist, try to find the latest one
         all_matches = sorted(backend_dir.glob("matches_*.json"), reverse=True)
         if all_matches:
             return all_matches[0]
         return None
-    
+
     return matches_path
+
+
+@lru_cache(maxsize=1)
+def load_matches():
+    """Matches are a static export, so read them once instead of per request."""
+    matches_file = get_latest_matches_json()
+    if not matches_file:
+        raise HTTPException(status_code=500, detail="Matches file not found")
+    try:
+        with open(matches_file, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading matches file: {str(e)}")
 
 def find_user_match(user_email: str, matches_data: dict):
     """Find a user's match in the matches JSON data"""
@@ -74,7 +83,7 @@ def find_user_match(user_email: str, matches_data: dict):
     return None
 
 @router.get("/check-result", response_model=Round1ResultResponse)
-async def check_round1_result(email: str):
+def check_round1_result(email: str, db: Session = Depends(get_db)):
     """
     Check Round 1 results for a user
     
@@ -121,19 +130,8 @@ async def check_round1_result(email: str):
                 message="Redirecting to user form for Round 2 registration."
             )
 
-    # Load matches JSON
-    matches_file = get_latest_matches_json()
-    if not matches_file:
-        raise HTTPException(status_code=500, detail="Matches file not found")
-    
-    try:
-        with open(matches_file, 'r') as f:
-            matches_data = json.load(f)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading matches file: {str(e)}")
-    
     # Find user's match
-    match = find_user_match(email, matches_data)
+    match = find_user_match(email, load_matches())
     
     # Get user's match status from match_history
     match_history = db.query(MatchHistory).filter(
@@ -160,8 +158,9 @@ async def check_round1_result(email: str):
         )
 
 @router.post("/update-match-status")
-async def update_match_status(
-    request: UpdateMatchStatusRequest
+def update_match_status(
+    request: UpdateMatchStatusRequest,
+    db: Session = Depends(get_db),
 ):
     """
     Update user's match status based on Round 2 decision

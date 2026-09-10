@@ -1,8 +1,13 @@
+import logging
+import os
+from contextlib import asynccontextmanager
+
+import anyio.to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import users, chat, auth, status, round1_results
+
+from app.api import auth, chat, round1_results, status, users
 from app.db.database import Base, engine
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,19 +22,33 @@ if engine:
 else:
     logger.warning("⚠️  DATABASE_URL not configured. Running without database.")
 
-app = FastAPI(title="FindYourDate API", version="1.0")
+# Every handler that talks to Postgres, Supabase or OpenAI is a sync `def`, so
+# FastAPI runs it on the anyio worker threads. That pool is the request
+# concurrency limit; anything past it queues, which is what we want under load.
+THREADPOOL_SIZE = int(os.getenv("THREADPOOL_SIZE", "60"))
 
-# CORS configuration
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://findyourdate.snioe.dev,http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if o.strip()
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    anyio.to_thread.current_default_thread_limiter().total_tokens = THREADPOOL_SIZE
+    logger.info(f"✅ Worker threadpool sized to {THREADPOOL_SIZE}")
+    yield
+
+
+app = FastAPI(title="FindYourDate API", version="1.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        # "http://localhost:5173",
-        # "http://localhost:5174",
-        # "http://Localhost:5173",  # Handle case variation
-        # "http://127.0.0.1:5173",
-        # "http://127.0.0.1:5174",
-        "https://findyourdate.snioe.dev"
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,11 +61,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(status.router, prefix="/api/status", tags=["Status"])
 app.include_router(round1_results.router, prefix="/api/round1", tags=["Round 1 Results"])
 
+
 @app.get("/")
 def root():
     return {"message": "FindYourDate backend is running."}
-
-# Add OPTIONS handler for all routes to handle CORS preflight requests
-@app.options("/{full_path:path}")
-async def options_handler():
-    return {}
