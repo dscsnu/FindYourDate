@@ -27,9 +27,10 @@
     try {
       const res = await api.round1.checkResult(userEmail);
       resultStatus = res.status;
-      if (resultStatus = 'not_registered'){
+      if (resultStatus === 'not_registered') {
         goto('/userForm');
-        }
+        return;
+      }
       matchStatus = res.match_status;
       if (res.match) {
         matchedUserName = res.match.name;
@@ -81,6 +82,10 @@
     {#if matchStatus !== 'DECLINED'}
       <button class="decline" on:click={() => showModal = true}>Decline Match</button>
     {/if}
+  </div>
+{:else}
+  <div class="center">
+    <p>We couldn't load your results right now. Please refresh in a moment.</p>
   </div>
 {/if}
 

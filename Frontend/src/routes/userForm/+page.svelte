@@ -1,6 +1,7 @@
 <script>
     import { goto } from "$app/navigation";
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api, API_BASE_URL } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
@@ -19,23 +20,16 @@
 	onMount(async () => {
 		// Load session if exists
 		await authStore.loadSession();
-		
-		// Check if user is authenticated
-		const currentSession = await new Promise(resolve => {
-			const unsubscribe = authStore.subscribe(value => {
-				resolve(value);
-				unsubscribe();
-			});
-		});
-		
+
+		const currentSession = get(authStore);
+
 		if (!currentSession?.authenticated) {
 			// Redirect to home if not authenticated
 			goto('/');
 			return;
 		}
-		 configStore.subscribe(config => {
-                    round1ResultPublished = config.round1ResultPublished;
-            });
+
+		round1ResultPublished = get(configStore).round1ResultPublished;
 
 		// Check user status - if they've already completed form, redirect accordingly
 		try {
@@ -648,6 +642,7 @@
 	</div>
 	{/if}
 	{/if}
+</div>
 
 <style>
 	@media (min-width: 700px) {
@@ -746,4 +741,3 @@
 		}
 	}
 </style>
-</div>

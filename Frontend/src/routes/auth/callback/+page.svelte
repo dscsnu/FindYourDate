@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
@@ -28,14 +29,12 @@
 
 				// Clear URL parameters
 				window.history.replaceState({}, '', '/auth/callback');
-                configStore.subscribe(config => {
-                    round1ResultPublished = config.round1ResultPublished;
-            });
-				// Redirect to user form
-                if(round1ResultPublished){
-                    goto('/endScreen');
-                    return;
-                }
+
+				round1ResultPublished = get(configStore).round1ResultPublished;
+				if (round1ResultPublished) {
+					await goto('/endScreen');
+					return;
+				}
 				await goto('/userForm');
 			} catch (err) {
 				console.error('Auth error:', err);

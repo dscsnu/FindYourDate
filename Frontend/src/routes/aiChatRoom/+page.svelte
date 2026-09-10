@@ -247,8 +247,8 @@
 	}
 
 	async function sendMessage() {
-		if (!newMessage.trim() || isComplete) return;
-		
+		if (!newMessage.trim() || isComplete || isTyping) return;
+
 		const userAnswer = newMessage.trim();
 		
 		// Add user message to UI
@@ -387,8 +387,9 @@
 				<div class="flex-1">
 					<textarea
 						bind:value={newMessage}
-						onkeypress={handleKeypress}
-						placeholder="Type your message..."
+						onkeydown={handleKeypress}
+						disabled={isTyping || isComplete}
+						placeholder={isTyping ? 'Thinking...' : 'Type your message...'}
 						rows="1"
 						class="w-full px-4 py-3 rounded-full resize-none focus:ring-2 focus:border-transparent outline-none transition-all"
 						style="border: 1px solid var(--secondary-color); font-family: 'Nunito', sans-serif; max-height: 120px;"
@@ -397,7 +398,8 @@
 				<!-- svelte-ignore a11y_consider_explicit_label -->
 				<button
 					type="submit"
-					class="px-6 py-3 rounded-full text-white font-medium hover:opacity-90 transition-all duration-200 shrink-0"
+					disabled={isTyping || isComplete || !newMessage.trim()}
+					class="px-6 py-3 rounded-full text-white font-medium hover:opacity-90 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
 					style="background-color: var(--primary-color); font-family: 'Nunito', sans-serif;"
 				>
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

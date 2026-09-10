@@ -1,6 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api, API_BASE_URL } from '$lib/api';
     import { configStore } from '$lib/stores/config';
@@ -90,36 +91,24 @@
 		}, (heart.duration + heart.delay) * 1000);
 	}
 
+	let heartInterval;
+
 	onMount(async () => {
-		// Load existing session if available
+		heartInterval = setInterval(createHeart, 1500);
+
+		round1ResultPublished = get(configStore).round1ResultPublished;
+
 		await authStore.loadSession();
-		        configStore.subscribe(config => {
-            round1ResultPublished = config.round1ResultPublished;
-    });
-		
-		// Check if user is already authenticated
-		const currentSession = await new Promise(resolve => {
-			const unsubscribe = authStore.subscribe(value => {
-				resolve(value);
-				unsubscribe();
-			});
-		});
-		
+		const currentSession = get(authStore);
+
 		if (currentSession?.authenticated) {
-			// User is authenticated, check their status
 			await checkUserStatus(currentSession);
 		} else {
-			// Not authenticated, stay on landing page
 			checkingStatus = false;
 		}
-
-		// Create initial hearts
-		const interval = setInterval(() => {
-			createHeart();
-		}, 1500); // Create a new heart every 1.5 seconds
-
-		return () => clearInterval(interval);
 	});
+
+	onDestroy(() => clearInterval(heartInterval));
 </script>
 
 {#if checkingStatus}

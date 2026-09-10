@@ -1,7 +1,7 @@
 // API configuration and utilities
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
-const API_BASE_URL = PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = env.PUBLIC_API_URL || 'http://localhost:1386/api';
 
 export const api = {
 	// Auth endpoints
