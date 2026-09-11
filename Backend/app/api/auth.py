@@ -4,7 +4,7 @@ from urllib.parse import quote
 
 from dotenv import load_dotenv
 from fastapi import APIRouter, Cookie, HTTPException, Response
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from app.core.auth import (
@@ -128,6 +128,14 @@ def google_callback(
     return redirect_response
 
 
+def _refresh_failed(detail: str) -> JSONResponse:
+    # Raising HTTPException would discard any cookies set on the injected
+    # Response, so build the 401 here and clear the dead cookies on it.
+    failed = JSONResponse(status_code=401, content={"detail": detail})
+    _clear_session_cookies(failed)
+    return failed
+
+
 @router.post("/refresh")
 def refresh_session(
     response: Response,
@@ -137,17 +145,15 @@ def refresh_session(
     Refresh an expired session using refresh token from httpOnly cookie.
     """
     if not refresh_token:
-        raise HTTPException(status_code=401, detail="No refresh token found")
+        return JSONResponse(status_code=401, content={"detail": "No refresh token found"})
 
     try:
         auth_response = supabase.auth.refresh_session(refresh_token)
     except Exception:
-        _clear_session_cookies(response)
-        raise HTTPException(status_code=401, detail="Failed to refresh session")
+        return _refresh_failed("Failed to refresh session")
 
     if not auth_response.session:
-        _clear_session_cookies(response)
-        raise HTTPException(status_code=401, detail="Failed to refresh session")
+        return _refresh_failed("Failed to refresh session")
 
     _set_session_cookies(response, auth_response.session)
     return {"message": "Session refreshed successfully"}
