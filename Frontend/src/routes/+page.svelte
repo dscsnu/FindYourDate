@@ -3,7 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
-	import { api, API_BASE_URL } from '$lib/api';
+	import { api } from '$lib/api';
     import { configStore } from '$lib/stores/config';
 
 	let hearts = $state([]);

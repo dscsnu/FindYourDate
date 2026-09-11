@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
-	import { api, API_BASE_URL } from '$lib/api';
+	import { api } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
     import { configStore } from '$lib/stores/config';
 
