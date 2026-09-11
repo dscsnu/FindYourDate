@@ -23,6 +23,9 @@ python-dotenv==1.0.1
 
 # Authentication
 supabase==2.22.2
+# supabase 2.22.x breaks against supabase-auth >= 2.31 (moved http_clients),
+# and pip resolves to the newest by default, so pin it.
+supabase-auth==2.22.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.2.0

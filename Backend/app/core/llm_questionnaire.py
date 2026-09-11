@@ -1,11 +1,14 @@
-import os
-from openai import OpenAI
-from app.db.qdrant_client import store_embedding
-from app.utils.embeddings import get_text_embedding
-import numpy as np
+import logging
 from typing import List, Dict
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+import numpy as np
+from fastapi import HTTPException
+
+from app.core.llm import client, llm_slot
+from app.db.qdrant_client import store_embedding
+from app.utils.embeddings import get_text_embedding
+
+logger = logging.getLogger(__name__)
 
 
 def process_and_embed_chat(user_email: str, chat_history: List[Dict[str, str]]):
@@ -77,7 +80,12 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         if user_email:
             try:
                 embedding_result = process_and_embed_chat(user_email, chat_history)
+            except HTTPException:
+                # Queue was full. Surface it so the client retries and the
+                # profile actually gets embedded; there is no manual path.
+                raise
             except Exception as e:
+                logger.exception("Embedding failed for %s", user_email)
                 return {
                     "question": None,
                     "is_complete": True,
@@ -164,16 +172,17 @@ Return ONLY the question text - no greetings, no introductions, just the questio
     
     try:
         # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.8,
-            max_tokens=150
-        )
-        
+        with llm_slot():
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.8,
+                max_tokens=150
+            )
+
         question = response.choices[0].message.content.strip()
         
         # Remove quotes if LLM added them
@@ -190,8 +199,13 @@ Return ONLY the question text - no greetings, no introductions, just the questio
             "category": category
         }
     
-    except Exception as e:
+    except HTTPException:
+        # Queue was full; let the client back off rather than silently
+        # handing everyone the same canned questions during a rush.
+        raise
+    except Exception:
         # Fallback questions if LLM fails
+        logger.exception("LLM question generation failed, using fallback")
         fallback_questions = {
             0: "What are the most important values you look for in a partner?",
             1: "How would your closest friends describe your personality?",

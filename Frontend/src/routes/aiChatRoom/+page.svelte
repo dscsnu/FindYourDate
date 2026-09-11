@@ -18,6 +18,7 @@
 	let currentQuestion = $state(null);
 	let questionNumber = $state(0);
 	let messagesContainer = $state(null);
+	let retryAvailable = $state(false);
 
 	// Subscribe to auth store
 	authStore.subscribe(value => {
@@ -144,28 +145,39 @@
 		}
 	});
 
-	async function fetchNextQuestion() {
+	const RETRY_DELAYS_MS = [1500, 4000, 9000];
+
+	async function fetchNextQuestion(attempt = 0) {
 		isTyping = true;
-		
+
 		try {
 			const response = await api.chat.nextQuestion(chatHistory);
 
-			if (response.status === 429) {
-				// Rate limited
-				const errorData = await response.json();
+			// 503 means the server's LLM queue is full. It clears, so wait and
+			// retry rather than dead-ending the user mid-questionnaire.
+			if (response.status === 503 && attempt < RETRY_DELAYS_MS.length) {
+				await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+				return fetchNextQuestion(attempt + 1);
+			}
+
+			if (response.status === 429 || response.status === 503) {
+				const errorData = await response.json().catch(() => ({}));
 				isTyping = false;
-				
+
 				messages = [...messages, {
 					id: messageIdCounter++,
-					text: `⚠️ ${errorData.detail.message || 'Too many requests. Please wait a moment before continuing.'}`,
+					text: `⚠️ ${errorData?.detail?.message || 'We are busy right now. Please wait a moment and try again.'}`,
 					sender: 'ai'
 				}];
+				retryAvailable = true;
 				return;
 			}
 
 			if (!response.ok) {
 				throw new Error('Failed to fetch question');
 			}
+
+			retryAvailable = false;
 
 			const data = await response.json();
 			
@@ -216,14 +228,19 @@
 		} catch (error) {
 			isTyping = false;
 			console.error('Error fetching question:', error);
-			
-			// Show error message
+
 			messages = [...messages, {
 				id: messageIdCounter++,
 				text: "Sorry, there was an error. Please try again.",
 				sender: 'ai'
 			}];
+			retryAvailable = true;
 		}
+	}
+
+	function retryQuestion() {
+		retryAvailable = false;
+		fetchNextQuestion();
 	}
 
 	async function sendMessage() {
@@ -337,6 +354,18 @@
 					</div>
 				</div>
 			{/each}
+
+			{#if retryAvailable && !isTyping}
+				<div class="flex justify-start">
+					<button
+						onclick={retryQuestion}
+						class="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90"
+						style="background-color: var(--primary-color); font-family: 'Nunito', sans-serif;"
+					>
+						Try again
+					</button>
+				</div>
+			{/if}
 
 			<!-- Typing Indicator -->
 			{#if isTyping}
