@@ -1,6 +1,8 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 	import "../app.css";
+	import { fade } from 'svelte/transition';
+	import { page } from '$app/state';
 	import { configStore } from '$lib/stores/config';
 	import FormsClosedPage from '$lib/components/FormsClosedPage.svelte';
 
@@ -21,6 +23,11 @@
 	{#if formsClosed}
 		<FormsClosedPage />
 	{:else}
-		{@render children?.()}
+		<!-- Fade each route in; no outro, so pages never overlap mid-navigation -->
+		{#key page.url.pathname}
+			<div class="min-h-screen" in:fade={{ duration: 250 }}>
+				{@render children?.()}
+			</div>
+		{/key}
 	{/if}
 </div>

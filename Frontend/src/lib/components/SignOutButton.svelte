@@ -23,8 +23,7 @@
 <button
 	onclick={handleSignOut}
 	disabled={isLoggingOut}
-	class="sign-out-btn px-4 py-2 rounded-full font-semibold text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-	style="font-family: 'Nunito', sans-serif;"
+	class="sign-out-btn px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
 >
 	{#if isLoggingOut}
 		<span class="flex items-center gap-2">
@@ -40,11 +39,14 @@
 	.sign-out-btn {
 		background-color: var(--primary-color);
 		color: white;
-		border: none;
+		/* Outline keeps the button visible on the pink page backgrounds */
+		border: 1.5px solid rgba(255, 255, 255, 0.85);
+		box-shadow: 0 2px 8px rgba(49, 48, 53, 0.12);
 	}
 
 	.sign-out-btn:hover:not(:disabled) {
-		opacity: 0.9;
+		background-color: white;
+		color: var(--secondary-color);
 		transform: scale(1.02);
 	}
 
