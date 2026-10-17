@@ -337,8 +337,8 @@
 								Who are you interested in?
 							</h2>
 							<div class="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-md mx-auto">
-								{@render optionCard(formData.interestedIn === 'men', () => formData.interestedIn = 'men', ICONS.male, 'Men')}
-								{@render optionCard(formData.interestedIn === 'women', () => formData.interestedIn = 'women', ICONS.female, 'Women')}
+								{@render optionCard(formData.interestedIn === 'men', () => formData.interestedIn = 'men', ICONS.male, 'Male')}
+								{@render optionCard(formData.interestedIn === 'women', () => formData.interestedIn = 'women', ICONS.female, 'Female')}
 								{@render optionCard(formData.interestedIn === 'everyone', () => formData.interestedIn = 'everyone', ICONS.bisexual, 'Everyone')}
 							</div>
 						</div>
