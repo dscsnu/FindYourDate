@@ -327,11 +327,6 @@
 								{@render optionCard(formData.gender === 'male', () => formData.gender = 'male', ICONS.male, 'Male')}
 								{@render optionCard(formData.gender === 'female', () => formData.gender = 'female', ICONS.female, 'Female')}
 							</div>
-							{#if formData.gender === 'male'}
-								<div class="p-4 rounded-xl bg-yellow-100 text-yellow-800 text-center text-sm sm:text-base font-semibold" transition:fade={{ duration: 200 }}>
-									Due to gender imbalance, we cannot guarantee you a pair.
-								</div>
-							{/if}
 						</div>
 					{/if}
 
