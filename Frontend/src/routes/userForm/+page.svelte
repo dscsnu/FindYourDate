@@ -12,6 +12,7 @@
 	import { configStore } from '$lib/stores/config';
 	import { fadeIn, preloadImages } from '$lib/actions/fadeIn';
 	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
+	import { deriveOrientation } from '$lib/orientation';
 
 	let session = $state<Session | null>(null);
 	let loading = $state(true);
@@ -69,9 +70,6 @@
 	const ICONS = {
 		male: '/icons/male-icon.webp',
 		female: '/icons/female-icon.webp',
-		straight: '/icons/straight-icon.webp',
-		gay: '/icons/gay-icon.webp',
-		lesbian: '/icons/lesbian-icon.webp',
 		bisexual: '/icons/bisexual-icon.webp',
 		younger: '/icons/younger-icon.webp',
 		older: '/icons/older-icon.webp',
@@ -80,7 +78,7 @@
 
 	let formData = $state({
 		gender: '',
-		sexuality: '',
+		interestedIn: '', // 'men' | 'women' | 'everyone'
 		agePreference: '',
 		age: 21,
 		mobileNumber: '',
@@ -108,7 +106,7 @@
 
 	// Clear the error as soon as the user changes their answer
 	$effect(() => {
-		formData.gender; formData.sexuality; formData.agePreference;
+		formData.gender; formData.interestedIn; formData.agePreference;
 		formData.age; formData.mobileNumber; formData.consentToShare;
 		stepError = '';
 	});
@@ -138,8 +136,8 @@
 				}
 				return true;
 			case 1:
-				if (!formData.sexuality) {
-					return fail('Please select your sexuality');
+				if (!formData.interestedIn) {
+					return fail('Please select who you are interested in');
 				}
 				return true;
 			case 2:
@@ -194,7 +192,7 @@
 				name: (session.user.name || session.user.email) + suffix,
 				phone: formData.mobileNumber,
 				gender: formData.gender === 'male' ? 'M' : 'W',
-				orientation: formData.sexuality,
+				orientation: deriveOrientation(formData.gender, formData.interestedIn),
 				age: formData.age,
 				accept_non_straight: true, // Always accept bisexual partners
 				age_preference: formData.agePreference === 'older' ? 1 : (formData.agePreference === 'younger' ? -1 : 0)
@@ -326,8 +324,8 @@
 								What is your gender?
 							</h2>
 							<div class="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-xs sm:max-w-sm mx-auto">
-								{@render optionCard(formData.gender === 'male', () => { formData.gender = 'male'; if (formData.sexuality === 'lesbian') formData.sexuality = ''; }, ICONS.male, 'Male')}
-								{@render optionCard(formData.gender === 'female', () => { formData.gender = 'female'; if (formData.sexuality === 'gay') formData.sexuality = ''; }, ICONS.female, 'Female')}
+								{@render optionCard(formData.gender === 'male', () => formData.gender = 'male', ICONS.male, 'Male')}
+								{@render optionCard(formData.gender === 'female', () => formData.gender = 'female', ICONS.female, 'Female')}
 							</div>
 							{#if formData.gender === 'male'}
 								<div class="p-4 rounded-xl bg-yellow-100 text-yellow-800 text-center text-sm sm:text-base font-semibold" transition:fade={{ duration: 200 }}>
@@ -337,21 +335,16 @@
 						</div>
 					{/if}
 
-					<!-- Step 1: Your Sexuality -->
+					<!-- Step 1: Who they're interested in (orientation is derived from this + gender) -->
 					{#if currentStep === 1}
 						<div class="space-y-6 flex-1 flex flex-col justify-center">
 							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
-								What's Your Sexuality?
+								Who are you interested in?
 							</h2>
 							<div class="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-md mx-auto">
-								{@render optionCard(formData.sexuality === 'straight', () => formData.sexuality = 'straight', ICONS.straight, 'Straight')}
-								<!-- Gay (only for males) / Lesbian (only for females) -->
-								{#if formData.gender === 'male'}
-									{@render optionCard(formData.sexuality === 'gay', () => formData.sexuality = 'gay', ICONS.gay, 'Gay')}
-								{:else if formData.gender === 'female'}
-									{@render optionCard(formData.sexuality === 'lesbian', () => formData.sexuality = 'lesbian', ICONS.lesbian, 'Lesbian')}
-								{/if}
-								{@render optionCard(formData.sexuality === 'bisexual', () => formData.sexuality = 'bisexual', ICONS.bisexual, 'Bisexual')}
+								{@render optionCard(formData.interestedIn === 'men', () => formData.interestedIn = 'men', ICONS.male, 'Men')}
+								{@render optionCard(formData.interestedIn === 'women', () => formData.interestedIn = 'women', ICONS.female, 'Women')}
+								{@render optionCard(formData.interestedIn === 'everyone', () => formData.interestedIn = 'everyone', ICONS.bisexual, 'Everyone')}
 							</div>
 						</div>
 					{/if}
