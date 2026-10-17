@@ -123,6 +123,32 @@
 		fetchNextQuestion();
 	}
 
+	// iOS Safari ignores interactive-widget and lays the keyboard over the page, so 100dvh
+	// stays full height and the input ends up under the keyboard. Size the chat to the
+	// visible viewport instead and undo the scroll Safari applies when the input is focused.
+	onMount(() => {
+		const vv = window.visualViewport;
+		if (!vv) return;
+		const root = document.documentElement;
+		const fit = () => {
+			root.style.setProperty('--chat-height', `${vv.height}px`);
+			window.scrollTo(0, 0);
+		};
+		// Keyboard opening shrinks the list from the bottom; keep the latest question in view.
+		const onResize = () => {
+			fit();
+			messagesContainer?.scrollTo({ top: messagesContainer.scrollHeight });
+		};
+		fit();
+		vv.addEventListener('resize', onResize);
+		vv.addEventListener('scroll', fit);
+		return () => {
+			vv.removeEventListener('resize', onResize);
+			vv.removeEventListener('scroll', fit);
+			root.style.removeProperty('--chat-height');
+		};
+	});
+
 	onMount(async () => {
 		// Load session if exists
 		await authStore.loadSession();
@@ -436,6 +462,7 @@
 	.chat-container {
 		height: 100vh;
 		height: 100dvh; /* Use dynamic viewport height for mobile keyboards */
+		height: var(--chat-height, 100dvh); /* visible area above the keyboard, set in onMount */
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
