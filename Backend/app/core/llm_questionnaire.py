@@ -118,10 +118,10 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
     # Determine category based on question number
     if current_count < 5:
         category = "personality"
-        category_description = "personality, core values, relationship goals, emotional traits, life priorities"
+        category_description = "personality, quirks, sense of humour, little joys, how they act around people"
     else:
         category = "social_energy"
-        category_description = "social activities, lifestyle preferences, energy levels, hobbies, how they spend time"
+        category_description = "social life, weekends, parties, music, hobbies, energy levels"
     
     # Build conversation context for LLM
     conversation_context = ""
@@ -133,35 +133,46 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
     # Create LLM prompt
     if current_count == 0:
         # First question
-        system_prompt = """You are a dating app questionnaire assistant for high school/college students. Generate a SHORT, friendly question about personality and values. 
-        
+        system_prompt = """You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. Ask ONE light, playful question that reveals their personality.
+
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", etc.
-        - Its for finding them a similar prom date, so not too serious questions
-        - Keep questions SHORT (under 15 words)
-        - Keep content appropriate for ages 16+ (PG-16)
-        - Make it casual and natural
-        - Avoid anything sexual"""
-        
-        user_prompt = "Generate a short first question about their personality or values. Just the question, nothing else."
-    
+        - It's for finding a prom date, so keep it fun and low-stakes - never deep, heavy or interview-like
+        - Avoid serious topics: life goals, values, conflict, ideal relationships, career
+        - Keep it SHORT (under 20 words), casual, like a friend asking at a party
+        - Ask for an answer in words (no "answer in emojis" or one-word/yes-no questions)
+        - Keep content appropriate for ages 16+ (PG-16), nothing sexual
+
+        Examples of the right vibe:
+        - What's the most 'you' thing you've ever done?
+        - If your friends had to describe you in three words, what would they say?
+        - What's a small thing that instantly makes your day better?"""
+
+        user_prompt = "Ask the first fun question about their personality. Just the question, nothing else."
+
     else:
         # Follow-up questions
-        system_prompt = f"""You are a dating app questionnaire assistant for high school/college students. Generate SHORT, personalized questions.
+        system_prompt = f"""You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. Ask ONE light, playful, personalized question.
 
         Current focus: {category_description}
-        
+
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
-        - Keep questions SHORT (under 40 words)
-        - Its for finding them a similar prom date, so not too serious questions
+        - It's for finding a prom date, so keep it fun and low-stakes - never deep, heavy or interview-like
+        - Avoid serious topics: life goals, values, conflict, ideal relationships, career
+        - Keep it SHORT (under 25 words), casual, like a friend asking at a party
+        - Ask for an answer in words (no "answer in emojis" or yes/no questions)
         - Keep content appropriate - avoid sexual/controversial topics, divert topic in case
-        - Try to build on their previous answers(but its not necessary) and on the context(personality/social) naturally
-        - Avoid yes/no questions
-        - For personality (1-5): values, traits, communication, goals
-        - For social (6-10): activities, hobbies, lifestyle, energy levels
-        - Dont ask repetitive questions, explore more areas, even if its not related to previous answers
-        - DO NOT ASK SIMILAR QUESTIONS, EXPLORE DIFFERENT ASPECTS OF THEIR PERSONALITY AND LIFESTYLE
+        - About half the time, pick up a specific detail from one of their earlier answers and spin a new, playful question off it (e.g. they mentioned biryani -> "Would you cook biryani for your prom date, or would you rather be fed?")
+        - For personality (1-5): quirks, humour, little joys, how they act around people
+        - For social (6-10): weekends, parties, music, current obsessions, hobbies, energy levels
+        - Every question must cover a NEW topic - never repeat a theme already asked (e.g. only ONE question about making people laugh, only ONE about parties)
+
+        Examples of the right vibe:
+        - What's your go-to move when a conversation gets awkward?
+        - At a party, where would we find you: dance floor, snack table, or deep in conversation?
+        - What song would you request at prom, and why?
+        - What's your current obsession: a show, game, food, anything?
         """
         
         user_prompt = f"""Generate question #{current_count + 1} about {category_description}.
@@ -207,16 +218,16 @@ Return ONLY the question text - no greetings, no introductions, just the questio
         # Fallback questions if LLM fails
         logger.exception("LLM question generation failed, using fallback")
         fallback_questions = {
-            0: "What are the most important values you look for in a partner?",
-            1: "How would your closest friends describe your personality?",
-            2: "What does your ideal relationship look like?",
-            3: "How do you typically handle disagreements or conflicts?",
-            4: "What are your long-term goals in life and love?",
-            5: "How do you like to spend your free time?",
-            6: "Are you more of an introvert, extrovert, or somewhere in between?",
-            7: "What kind of activities energize you the most?",
-            8: "Describe your perfect weekend.",
-            9: "What hobbies or interests are you passionate about?"
+            0: "What's the most 'you' thing you've ever done?",
+            1: "If your friends had to describe you in three words, what would they say?",
+            2: "What's a small thing that instantly makes your day better?",
+            3: "What's your go-to move when a conversation gets awkward?",
+            4: "What's something on your bucket list you'd actually do this year?",
+            5: "What's your ideal way to spend a free Saturday?",
+            6: "At a party, where would we find you: dance floor, snack table, or deep in conversation?",
+            7: "What song would you request at prom, and why?",
+            8: "What's your current obsession: a show, game, food, anything?",
+            9: "What's a hobby or skill you'd love to show off to your date?"
         }
         
         return {
