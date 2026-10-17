@@ -321,7 +321,7 @@
 					{#if currentStep === 0}
 						<div class="space-y-6 flex-1 flex flex-col justify-center">
 							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
-								What is your gender?
+								What is your sex?
 							</h2>
 							<div class="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-xs sm:max-w-sm mx-auto">
 								{@render optionCard(formData.gender === 'male', () => formData.gender = 'male', ICONS.male, 'Male')}
