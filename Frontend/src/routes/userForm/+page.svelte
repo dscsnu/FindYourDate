@@ -1,13 +1,19 @@
-<script>
-    import { goto } from "$app/navigation";
+<script lang="ts">
+	import { goto, preloadCode } from "$app/navigation";
 	import { onMount } from 'svelte';
+	import { fade, fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
+
+	type Session = { user: { id: string; email: string; name: string | null } | null; authenticated: boolean };
 	import { api } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
-    import { configStore } from '$lib/stores/config';
+	import { configStore } from '$lib/stores/config';
+	import { fadeIn, preloadImages } from '$lib/actions/fadeIn';
+	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
 
-	let session = $state(null);
+	let session = $state<Session | null>(null);
 	let loading = $state(true);
 	let submitting = $state(false);
     let round1ResultPublished = $state(false);
@@ -53,7 +59,24 @@
 		}
 		
 		loading = false;
+
+		// Warm every option icon so stepping through the form never waits on images,
+		// and fetch the chat page's code before the user needs it.
+		preloadImages(Object.values(ICONS));
+		preloadCode('/aiChatRoom');
 	});
+
+	const ICONS = {
+		male: '/icons/male-icon.webp',
+		female: '/icons/female-icon.webp',
+		straight: '/icons/straight-icon.webp',
+		gay: '/icons/gay-icon.webp',
+		lesbian: '/icons/lesbian-icon.webp',
+		bisexual: '/icons/bisexual-icon.webp',
+		younger: '/icons/younger-icon.webp',
+		older: '/icons/older-icon.webp',
+		'no-preference': '/icons/no-preference-icon.webp'
+	};
 
 	let formData = $state({
 		gender: '',
@@ -68,16 +91,32 @@
 	let currentStep = $state(0);
 	const totalSteps = 5; // Updated to 5 steps (removed bisexual preference question)
 
-	// Form animation state
+	// Screen state: intro -> form -> outro
 	let showIntro = $state(true);
-	let animateForm = $state(false);
 	let showOutro = $state(false);
-	let animateFormDown = $state(false);
 	let showForm = $state(true);
+
+	// Inline validation message (replaces blocking alert popups)
+	let stepError = $state('');
+	// 1 when moving forward, -1 when going back; drives the slide direction
+	let direction = $state(1);
+
+	function fail(message: string) {
+		stepError = message;
+		return false;
+	}
+
+	// Clear the error as soon as the user changes their answer
+	$effect(() => {
+		formData.gender; formData.sexuality; formData.agePreference;
+		formData.age; formData.mobileNumber; formData.consentToShare;
+		stepError = '';
+	});
 
 	function nextStep() {
 		if (currentStep < totalSteps - 1) {
 			if (validateCurrentStep()) {
+				direction = 1;
 				currentStep++;
 			}
 		}
@@ -85,6 +124,8 @@
 
 	function previousStep() {
 		if (currentStep > 0) {
+			stepError = '';
+			direction = -1;
 			currentStep--;
 		}
 	}
@@ -93,44 +134,36 @@
 		switch(currentStep) {
 			case 0:
 				if (!formData.gender) {
-					alert('Please select your gender');
-					return false;
+					return fail('Please select your gender');
 				}
 				return true;
 			case 1:
 				if (!formData.sexuality) {
-					alert('Please select your sexuality');
-					return false;
+					return fail('Please select your sexuality');
 				}
 				return true;
 			case 2:
 				if (!formData.agePreference) {
-					alert('Please select your age preference');
-					return false;
+					return fail('Please select your age preference');
 				}
 				return true;
 			case 3:
 				if (!formData.age) {
-					alert('Please select your age');
-					return false;
+					return fail('Please select your age');
 				}
 				if (formData.age < 17 || formData.age > 25) {
-					alert('Please select an age between 17 and 25');
-					return false;
+					return fail('Please select an age between 17 and 25');
 				}
 				return true;
 			case 4:
 				if (!formData.mobileNumber) {
-					alert('Please enter your mobile number');
-					return false;
+					return fail('Please enter your mobile number');
 				}
 				if (!/^\d{10}$/.test(formData.mobileNumber)) {
-					alert('Please enter a valid 10-digit mobile number');
-					return false;
+					return fail('Please enter a valid 10-digit mobile number');
 				}
 				if (!formData.consentToShare) {
-					alert('Please consent to share your number with your potential prom partner');
-					return false;
+					return fail('Please consent to share your number with your potential prom partner');
 				}
 				return true;
 			default:
@@ -139,8 +172,8 @@
 	}
 
 	function handleSubmit() {
+		if (submitting) return;
 		if (validateCurrentStep()) {
-			console.log('Form submitted:', formData);
 			submitting = true;
 			
 			// Create user in backend
@@ -172,26 +205,20 @@
 			// Store user ID in session storage for later use
 			sessionStorage.setItem('user_id', createdUser.id);
 
-			// Animate form down
-			animateFormDown = true;
-			setTimeout(() => {
-				showForm = false;
-				showOutro = true;
-				submitting = false;
-			}, 800);
+			// The form slides away and the outro fades in (see transitions below)
+			showForm = false;
+			showOutro = true;
+			submitting = false;
 
 		} catch (error) {
 			console.error('Error creating user:', error);
-			alert(error instanceof Error ? error.message : 'Failed to create user. Please try again.');
+			stepError = error instanceof Error ? error.message : 'Failed to create user. Please try again.';
 			submitting = false;
 		}
 	}
 
 	function startForm() {
-		animateForm = true;
-		setTimeout(() => {
-			showIntro = false;
-		}, 800); // Hide intro after animation completes
+		showIntro = false;
 	}
 
 	function beginChat() {
@@ -199,7 +226,31 @@
 	}
 </script>
 
-<div class="min-h-screen flex flex-col" style="background-color: var(--primary-color);">
+{#snippet optionCard(selected: boolean, onSelect: () => void, icon: string, label: string)}
+	<button
+		type="button"
+		onclick={onSelect}
+		aria-pressed={selected}
+		class="option-card flex flex-col items-center justify-start gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl border-2"
+		class:is-selected={selected}
+		style="border-color: {selected ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {selected ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
+	>
+		<img
+			src={icon}
+			alt=""
+			width="192"
+			height="192"
+			decoding="async"
+			use:fadeIn
+			class="w-14 h-14 sm:w-20 sm:h-20 object-contain"
+		/>
+		<span class="text-sm sm:text-base font-semibold leading-tight text-center" style="color: var(--secondary-color);">
+			{label}
+		</span>
+	</button>
+{/snippet}
+
+<div class="min-h-dvh flex flex-col" style="background-color: var(--primary-color);">
 	<!-- Sign Out Button - Top Right -->
 	{#if !loading}
 		<div class="absolute top-4 right-4 z-50">
@@ -209,288 +260,124 @@
 
 	<!-- Loading Screen -->
 	{#if loading}
-		<div class="flex-1 flex items-center justify-center">
-			<div class="text-center">
-				<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-				<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
-					Loading...
-				</p>
-			</div>
-		</div>
+		<LoadingScreen />
 	{:else}
-	<!-- Intro Screen -->
+	<!-- Intro, form and outro share one grid cell so they cross-fade without layout jumps -->
+	<div class="stage flex-1">
 	{#if showIntro}
-		<div class="flex-1 flex items-center justify-center px-4">
+		<!-- Intro Screen -->
+		<section class="flex items-center justify-center px-6 py-20" out:fade={{ duration: 200 }}>
 			<div class="text-center space-y-8 max-w-2xl">
-				<h1 class="text-3xl md:text-4xl font-bold text-white" style="font-family: 'Nunito', sans-serif;">
+				<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-balance lg:leading-tight">
 					Answer a few quick questions to help us understand your preferences better.
 				</h1>
 				<button
 					onclick={startForm}
-					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
-					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
+					class="cta px-8 py-4 rounded-full text-lg font-semibold shadow-lg"
+					style="background-color: white; color: var(--secondary-color);"
 				>
 					Start 'em
 				</button>
 			</div>
-		</div>
-	{/if}
-
-	<!-- Outro Screen -->
-	{#if showOutro}
-		<div class="flex-1 flex items-center justify-center px-4">
-			<div class="text-center space-y-8 max-w-2xl">
-				<h1 class="text-3xl md:text-4xl font-bold text-white" style="font-family: 'Nunito', sans-serif;">
-					Now chat with our AI for a few minutes—it'll learn your interests and vibe to find your most compatible prom match!
-				</h1>
-				<button
-					onclick={beginChat}
-					class="px-8 py-4 rounded-full text-lg font-semibold transition-all duration-200 hover:scale-105 shadow-lg"
-					style="background-color: white; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
-				>
-					Begin!
-				</button>
+		</section>
+	{:else if showForm}
+		<!-- Form -->
+		<section
+			class="flex flex-col"
+			in:fly={{ y: 80, duration: 600, delay: 150, easing: cubicOut }}
+			out:fly={{ y: 160, duration: 450, easing: cubicOut }}
+		>
+			<!-- Progress Indicator -->
+			<div class="py-6" role="progressbar" aria-valuemin="1" aria-valuemax={totalSteps} aria-valuenow={currentStep + 1} aria-label="Question {currentStep + 1} of {totalSteps}">
+				<div class="flex justify-center gap-2 sm:gap-3">
+					{#each Array(totalSteps) as _, i}
+						<div 
+							class="progress-dot h-2.5 sm:h-3 rounded-full"
+							class:is-current={i === currentStep}
+							style="background-color: {i <= currentStep ? 'white' : 'rgba(255, 255, 255, 0.5)'};"
+						></div>
+					{/each}
+				</div>
 			</div>
-		</div>
-	{/if}
 
-	<!-- Progress Indicator - Fixed at top -->
-	{#if !showIntro && showForm}
-	<div class="py-6">
-		<div class="flex justify-center gap-3">
-			{#each Array(totalSteps) as _, i}
-				<div 
-					class="h-3 rounded-full transition-all duration-300"
-					class:w-16={i === currentStep}
-					class:w-10={i !== currentStep}
-					style="background-color: {i <= currentStep ? 'white' : 'rgba(255, 255, 255, 0.5)'};"
-				></div>
-			{/each}
-		</div>
-	</div>
-	{/if}
+			<!-- Logo + card: stacked (card docked to the bottom) on mobile, side by side on desktop -->
+			<div class="flex-1 flex flex-col lg:flex-row items-center justify-end lg:justify-center lg:gap-16 lg:px-12 lg:pb-12">
+				<div class="w-full lg:w-auto flex items-center justify-center px-4 pb-4 lg:p-0 lg:flex-1 lg:max-w-sm">
+					<img 
+						src="/images/logo.webp" 
+						alt="Find Your Date" 
+						width="900"
+						height="900"
+						use:fadeIn
+						class="h-40 sm:h-48 lg:h-auto w-auto lg:w-full object-contain drop-shadow-lg"
+					/>
+				</div>
 
-	<!-- Content Container - Form -->
-	{#if !showIntro && showForm}
-	<div class="flex-1 flex flex-col items-end lg:items-center justify-end lg:justify-center">
-		<!-- Mobile Placeholder Image - Only visible on mobile, above the card -->
-		<!-- rm flex-1 to avoid pushing btns down -->
-		<div class="lg:hidden w-full flex items-center justify-center px-4 pb-4">
-			<img 
-				src="/images/logo.png" 
-				alt="Placeholder" 
-				class="max-h-48 w-auto object-contain"
-			/>
-		</div>
-		
-		<!-- Form Section -->
-		<div class="w-full lg:max-w-2xl bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl form-container" class:animate-slide-up={animateForm} class:animate-slide-down={animateFormDown}>
-			<div class="p-10">
-			<div class="min-h-[400px] flex flex-col">
-			<!-- Step 0: Gender -->
-			{#if currentStep === 0}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						What is your gender?
-					</h2>
-					<div class="flex gap-6 justify-center">
-						<!-- Male Button -->
-						<button
-							type="button"
-							onclick={() => formData.gender = 'male'}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							class:selected-gender={formData.gender === 'male'}
-							style="border-color: {formData.gender === 'male' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'male' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/male-icon.png" 
-								alt="Male" 
-								class="w-24 h-24 object-contain"
-							/>
-							<span class="text-lg font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Male
-							</span>
-						</button>
-
-						<!-- Female Button -->
-						<button
-							type="button"
-							onclick={() => formData.gender = 'female'}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							class:selected-gender={formData.gender === 'female'}
-							style="border-color: {formData.gender === 'female' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.gender === 'female' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/female-icon.png" 
-								alt="Female" 
-								class="w-24 h-24 object-contain"
-							/>
-							<span class="text-lg font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Female
-							</span>
-						</button>
-						{#if formData.gender === 'male'}
-							<div class="mt-4 p-4 rounded-xl bg-yellow-100 text-yellow-800 text-center font-semibold" style="font-family: 'Nunito', sans-serif;">
-								Due to gender imbalance, we cannot guarantee you a pair.
+				<!-- Form Section -->
+				<div class="w-full lg:max-w-xl lg:flex-1 bg-white rounded-t-3xl lg:rounded-3xl shadow-2xl">
+					<div class="p-6 sm:p-10">
+					<div class="min-h-[380px] sm:min-h-[400px] flex flex-col">
+					{#key currentStep}
+					<div class="flex-1 flex flex-col" in:fly={{ x: 40 * direction, duration: 300, easing: cubicOut }}>
+					<!-- Step 0: Gender -->
+					{#if currentStep === 0}
+						<div class="space-y-6 flex-1 flex flex-col justify-center">
+							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
+								What is your gender?
+							</h2>
+							<div class="grid grid-cols-2 gap-4 sm:gap-6 w-full max-w-xs sm:max-w-sm mx-auto">
+								{@render optionCard(formData.gender === 'male', () => { formData.gender = 'male'; if (formData.sexuality === 'lesbian') formData.sexuality = ''; }, ICONS.male, 'Male')}
+								{@render optionCard(formData.gender === 'female', () => { formData.gender = 'female'; if (formData.sexuality === 'gay') formData.sexuality = ''; }, ICONS.female, 'Female')}
 							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
+							{#if formData.gender === 'male'}
+								<div class="p-4 rounded-xl bg-yellow-100 text-yellow-800 text-center text-sm sm:text-base font-semibold" transition:fade={{ duration: 200 }}>
+									Due to gender imbalance, we cannot guarantee you a pair.
+								</div>
+							{/if}
+						</div>
+					{/if}
 
-			<!-- Step 1: Your Sexuality -->
-			{#if currentStep === 1}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						What's Your Sexuality?
-					</h2>
-					<div class="flex flex-wrap gap-4 justify-center">
-						<!-- Straight Button -->
-						<button
-							type="button"
-							onclick={() => formData.sexuality = 'straight'}
-							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.sexuality === 'straight' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'straight' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/straight-icon.png" 
-								alt="Straight" 
-								class="w-20 h-20 object-contain"
-							/>
-							<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Straight
-							</span>
-						</button>
+					<!-- Step 1: Your Sexuality -->
+					{#if currentStep === 1}
+						<div class="space-y-6 flex-1 flex flex-col justify-center">
+							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
+								What's Your Sexuality?
+							</h2>
+							<div class="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-md mx-auto">
+								{@render optionCard(formData.sexuality === 'straight', () => formData.sexuality = 'straight', ICONS.straight, 'Straight')}
+								<!-- Gay (only for males) / Lesbian (only for females) -->
+								{#if formData.gender === 'male'}
+									{@render optionCard(formData.sexuality === 'gay', () => formData.sexuality = 'gay', ICONS.gay, 'Gay')}
+								{:else if formData.gender === 'female'}
+									{@render optionCard(formData.sexuality === 'lesbian', () => formData.sexuality = 'lesbian', ICONS.lesbian, 'Lesbian')}
+								{/if}
+								{@render optionCard(formData.sexuality === 'bisexual', () => formData.sexuality = 'bisexual', ICONS.bisexual, 'Bisexual')}
+							</div>
+						</div>
+					{/if}
 
-						<!-- Gay Button (only for males) -->
-						{#if formData.gender === 'male'}
-							<button
-								type="button"
-								onclick={() => formData.sexuality = 'gay'}
-								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-								style="border-color: {formData.sexuality === 'gay' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'gay' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-							>
-								<img 
-									src="/icons/gay-icon.png" 
-									alt="Gay" 
-									class="w-20 h-20 object-contain"
-								/>
-								<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-									Gay
-								</span>
-							</button>
-						{/if}
+					<!-- Step 2: Age Preference -->
+					{#if currentStep === 2}
+						<div class="space-y-6 flex-1 flex flex-col justify-center">
+							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
+								Would you prefer to be matched with someone older or younger than you?
+							</h2>
+							<div class="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-md mx-auto">
+								{@render optionCard(formData.agePreference === 'younger', () => formData.agePreference = 'younger', ICONS.younger, 'Younger')}
+								{@render optionCard(formData.agePreference === 'older', () => formData.agePreference = 'older', ICONS.older, 'Older')}
+								{@render optionCard(formData.agePreference === 'no-preference', () => formData.agePreference = 'no-preference', ICONS['no-preference'], 'No Preference')}
+							</div>
+						</div>
+					{/if}
 
-						<!-- Lesbian Button (only for females) -->
-						{#if formData.gender === 'female'}
-							<button
-								type="button"
-								onclick={() => formData.sexuality = 'lesbian'}
-								class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-								style="border-color: {formData.sexuality === 'lesbian' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'lesbian' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-							>
-								<img 
-									src="/icons/lesbian-icon.png" 
-									alt="Lesbian" 
-									class="w-20 h-20 object-contain"
-								/>
-								<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-									Lesbian
-								</span>
-							</button>
-						{/if}
-
-						<!-- Bisexual Button -->
-						<button
-							type="button"
-							onclick={() => formData.sexuality = 'bisexual'}
-							class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.sexuality === 'bisexual' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.sexuality === 'bisexual' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/bisexual-icon.png" 
-								alt="Bisexual" 
-								class="w-20 h-20 object-contain"
-							/>
-							<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Bisexual
-							</span>
-						</button>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Step 2: Age Preference -->
-			{#if currentStep === 2}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						Would you prefer to be matched with someone older or younger than you?
-					</h2>
-					<div class="flex flex-wrap gap-4 justify-center">
-						<!-- Younger Button -->
-						<button
-							type="button"
-							onclick={() => formData.agePreference = 'younger'}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'younger' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'younger' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/younger-icon.png" 
-								alt="Younger" 
-								class="w-20 h-20 object-contain"
-							/>
-							<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Younger
-							</span>
-						</button>
-
-						<!-- Older Button -->
-						<button
-							type="button"
-							onclick={() => formData.agePreference = 'older'}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'older' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'older' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/older-icon.png" 
-								alt="Older" 
-								class="w-20 h-20 object-contain"
-							/>
-							<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								Older
-							</span>
-						</button>
-
-						<!-- No Preference Button -->
-						<button
-							type="button"
-							onclick={() => formData.agePreference = 'no-preference'}
-							class="flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all duration-200 hover:scale-105"
-							style="border-color: {formData.agePreference === 'no-preference' ? 'var(--secondary-color)' : '#e5e7eb'}; background-color: {formData.agePreference === 'no-preference' ? 'rgba(236, 167, 186, 0.1)' : 'white'};"
-						>
-							<img 
-								src="/icons/no-preference-icon.png" 
-								alt="No Preference" 
-								class="w-20 h-20 object-contain"
-							/>
-							<span class="text-base font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-								No Preference
-							</span>
-						</button>
-					</div>
-				</div>
-			{/if}
-
-			<!-- Step 3: Age -->
-			{#if currentStep === 3}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						What is your age?
-					</h2>
-					<div class="max-w-lg mx-auto w-full">
-						<div class="relative px-8 py-8 rounded-2xl" style="background: linear-gradient(135deg, rgba(236, 167, 186, 0.1), rgba(236, 167, 186, 0.05));">
-							<div class="flex items-center gap-8">
-								<div class="flex-1 relative">
+					<!-- Step 3: Age -->
+					{#if currentStep === 3}
+						<div class="space-y-6 flex-1 flex flex-col justify-center">
+							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
+								<label for="age">What is your age?</label>
+							</h2>
+							<div class="max-w-lg mx-auto w-full">
+								<div class="relative px-6 sm:px-8 py-8 rounded-2xl" style="background: linear-gradient(135deg, rgba(236, 167, 186, 0.1), rgba(236, 167, 186, 0.05));">
 									<input 
 										id="age"
 										type="range" 
@@ -500,125 +387,237 @@
 										class="w-full age-slider"
 										style="background: linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) {((formData.age - 17) / (25 - 17)) * 100}%, rgba(236, 167, 186, 0.2) {((formData.age - 17) / (25 - 17)) * 100}%, rgba(236, 167, 186, 0.2) 100%);"
 									/>
-								</div>
-							</div>
-							<div class="mt-6 text-center">
-								<div class="inline-block px-6 py-3 rounded-full shadow-md" style="background-color: var(--primary-color);">
-									<span class="text-4xl font-bold text-white" style="font-family: 'Nunito', sans-serif;">
-										{formData.age}
-									</span>
+									<div class="mt-6 text-center">
+										<div class="inline-block px-6 py-3 rounded-full shadow-md" style="background-color: var(--primary-color);">
+											<span class="text-4xl font-bold text-white tabular-nums">
+												{formData.age}
+											</span>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-				</div>
-			{/if}
+					{/if}
 
-			<!-- Step 4: Mobile Number -->
-			{#if currentStep === 4}
-				<div class="space-y-6 flex-1 flex flex-col justify-center">
-					<h2 class="text-2xl font-bold text-center" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
-						Please enter your mobile number so that your prom match can reach you?
-					</h2>
-					<div class="max-w-md mx-auto w-full space-y-4">
-						<input 
-							type="tel" 
-							bind:value={formData.mobileNumber}
-							placeholder="Enter 10-digit mobile number"
-							maxlength="10"
-							pattern="[0-9]{10}"
-							class="w-full px-6 py-4 text-lg rounded-2xl border-2 transition-all duration-200 focus:outline-none text-center font-semibold"
-							style="border-color: {formData.mobileNumber ? 'var(--secondary-color)' : '#e5e7eb'}; color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
-							oninput={(e) => {
-								// Only allow digits
-								const target = e.target;
-								if (target && target instanceof HTMLInputElement) {
-									formData.mobileNumber = target.value.replace(/\D/g, '');
-								}
-							}}
-						/>
-						<div class="flex items-start gap-3 p-4 rounded-xl" style="background-color: rgba(236, 167, 186, 0.1);">
-							<input 
-								type="checkbox" 
-								id="consent"
-								bind:checked={formData.consentToShare}
-								class="mt-1 w-5 h-5 cursor-pointer"
-								style="accent-color: var(--secondary-color);"
-							/>
-							<label 
-								for="consent" 
-								class="text-base cursor-pointer select-none"
-								style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
-							>
-								Yes, I consent to share my number with my potential prom partner
-							</label>
+					<!-- Step 4: Mobile Number -->
+					{#if currentStep === 4}
+						<div class="space-y-6 flex-1 flex flex-col justify-center">
+							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
+								<label for="mobile">Please enter your mobile number so that your prom match can reach you?</label>
+							</h2>
+							<div class="max-w-md mx-auto w-full space-y-4">
+								<input 
+									id="mobile"
+									type="tel" 
+									inputmode="numeric"
+									autocomplete="tel-national"
+									bind:value={formData.mobileNumber}
+									placeholder="Enter 10-digit mobile number"
+									maxlength="10"
+									pattern="[0-9]{10}"
+									class="w-full px-6 py-4 text-lg rounded-2xl border-2 transition-colors duration-200 focus:outline-none text-center font-semibold tracking-wide"
+									style="border-color: {formData.mobileNumber ? 'var(--secondary-color)' : '#e5e7eb'}; color: var(--secondary-color);"
+									oninput={(e) => {
+										// Only allow digits
+										const target = e.target;
+										if (target && target instanceof HTMLInputElement) {
+											formData.mobileNumber = target.value.replace(/\D/g, '');
+										}
+									}}
+									onkeydown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
+								/>
+								<div class="flex items-start gap-3 p-4 rounded-xl" style="background-color: rgba(236, 167, 186, 0.1);">
+									<input 
+										type="checkbox" 
+										id="consent"
+										bind:checked={formData.consentToShare}
+										class="mt-1 w-5 h-5 shrink-0 cursor-pointer"
+										style="accent-color: var(--secondary-color);"
+									/>
+									<label 
+										for="consent" 
+										class="text-sm sm:text-base cursor-pointer select-none"
+										style="color: var(--secondary-color);"
+									>
+										Yes, I consent to share my number with my potential prom partner
+									</label>
+								</div>
+							</div>
 						</div>
+					{/if}
 					</div>
-				</div>
-			{/if}
+					{/key}
 
-			<!-- Navigation Buttons -->
-			<div class="flex justify-between items-center mt-8">
-				<!-- Left Arrow Button -->
-				<button
-					type="button"
-					onclick={previousStep}
-					disabled={currentStep === 0}
-					class="transition-all duration-200 bg-transparent border-none p-0 cursor-pointer"
-					class:opacity-30={currentStep === 0}
-					class:cursor-not-allowed={currentStep === 0}
-					class:pointer-events-none={currentStep === 0}
-				>
-					<img 
-						src="/icons/arrow-icon.png" 
-						alt="Previous" 
-						class="w-12 h-12 transform rotate-180"
-					/>
-				</button>
-
-				<!-- Right Arrow or Submit Button -->
-				{#if currentStep < totalSteps - 1}
-					<button
-						type="button"
-						onclick={nextStep}
-						class="transition-all duration-200 hover:opacity-80 bg-transparent border-none p-0 cursor-pointer"
-					>
-						<img 
-							src="/icons/arrow-icon.png" 
-							alt="Next" 
-							class="w-12 h-12"
-						/>
-					</button>
-				{:else}
-					<button 
-						type="button"
-						onclick={handleSubmit}
-						disabled={submitting}
-						class="py-3 px-8 rounded-full text-white font-semibold text-base hover:opacity-90 transition-all duration-200 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-						style="background-color: var(--secondary-color); font-family: 'Nunito', sans-serif;"
-					>
-						{#if submitting}
-							<span class="flex items-center gap-2">
-								<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-								Creating...
-							</span>
-						{:else}
-							Submit
+					<!-- Inline validation / submit error -->
+					<div class="min-h-6 mt-4 text-center" aria-live="assertive">
+						{#if stepError}
+							<p class="step-error text-sm font-semibold" style="color: var(--accent-color);" role="alert">
+								{stepError}
+							</p>
 						{/if}
-					</button>
-				{/if}
+					</div>
+
+					<!-- Navigation Buttons -->
+					<div class="flex justify-between items-center mt-4">
+						<!-- Left Arrow Button -->
+						<button
+							type="button"
+							onclick={previousStep}
+							disabled={currentStep === 0}
+							aria-label="Previous question"
+							class="nav-arrow bg-transparent border-none p-0 rounded-full disabled:opacity-30 disabled:cursor-not-allowed"
+						>
+							<img 
+								src="/icons/arrow-icon.png" 
+								alt="" 
+								width="64"
+								height="64"
+								class="w-12 h-12 transform rotate-180"
+							/>
+						</button>
+
+						<!-- Right Arrow or Submit Button -->
+						{#if currentStep < totalSteps - 1}
+							<button
+								type="button"
+								onclick={nextStep}
+								aria-label="Next question"
+								class="nav-arrow bg-transparent border-none p-0 rounded-full"
+							>
+								<img 
+									src="/icons/arrow-icon.png" 
+									alt="" 
+									width="64"
+									height="64"
+									class="w-12 h-12"
+								/>
+							</button>
+						{:else}
+							<button 
+								type="button"
+								onclick={handleSubmit}
+								disabled={submitting}
+								class="cta py-3 px-8 rounded-full text-white font-semibold text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+								style="background-color: var(--secondary-color);"
+							>
+								{#if submitting}
+									<span class="flex items-center gap-2">
+										<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+										Creating...
+									</span>
+								{:else}
+									Submit
+								{/if}
+							</button>
+						{/if}
+					</div>
+					</div>
+					</div>
+				</div>
 			</div>
-		</div>
-	</div>
-		</div>
-	</div>
+		</section>
+	{:else if showOutro}
+		<!-- Outro Screen -->
+		<section class="flex items-center justify-center px-6 py-20" in:fade={{ duration: 400, delay: 350 }}>
+			<div class="text-center space-y-8 max-w-2xl">
+				<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-balance lg:leading-tight">
+					Now chat with our AI for a few minutes—it'll learn your interests and vibe to find your most compatible prom match!
+				</h1>
+				<button
+					onclick={beginChat}
+					class="cta px-8 py-4 rounded-full text-lg font-semibold shadow-lg"
+					style="background-color: white; color: var(--secondary-color);"
+				>
+					Begin!
+				</button>
+			</div>
+		</section>
 	{/if}
+	</div>
 	{/if}
 </div>
 
 <style>
-	@media (min-width: 700px) {
-		/* Ensure side-by-side layout on larger screens */
+	/* Stack every screen in one grid cell so transitions overlap in place */
+	.stage {
+		display: grid;
+	}
+
+	.stage > :global(section) {
+		grid-area: 1 / 1;
+		min-width: 0;
+	}
+
+	.cta {
+		transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), opacity 0.2s;
+	}
+
+	.cta:hover:not(:disabled) {
+		transform: translateY(-2px) scale(1.03);
+		box-shadow: 0 12px 24px -8px rgba(49, 48, 53, 0.35);
+	}
+
+	.cta:active:not(:disabled) {
+		transform: scale(0.98);
+	}
+
+	.progress-dot {
+		width: 1.25rem;
+		transition: width 0.35s var(--ease-out), background-color 0.35s;
+	}
+
+	.progress-dot.is-current {
+		width: 2.25rem;
+	}
+
+	@media (min-width: 640px) {
+		.progress-dot {
+			width: 2.5rem;
+		}
+
+		.progress-dot.is-current {
+			width: 4rem;
+		}
+	}
+
+	.option-card {
+		transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out),
+			border-color 0.2s, background-color 0.2s;
+	}
+
+	.option-card:hover {
+		transform: translateY(-3px);
+		box-shadow: 0 10px 20px -10px rgba(236, 167, 186, 0.9);
+	}
+
+	.option-card:active {
+		transform: scale(0.97);
+	}
+
+	.option-card.is-selected {
+		box-shadow: 0 8px 18px -10px rgba(49, 48, 53, 0.45);
+	}
+
+	.nav-arrow {
+		transition: transform 0.2s var(--ease-out), opacity 0.2s;
+	}
+
+	.nav-arrow:hover:not(:disabled) {
+		transform: scale(1.08);
+	}
+
+	.nav-arrow:active:not(:disabled) {
+		transform: scale(0.94);
+	}
+
+	.step-error {
+		animation: shake 0.35s var(--ease-out);
+	}
+
+	@keyframes shake {
+		0%, 100% { transform: translateX(0); }
+		25% { transform: translateX(-6px); }
+		75% { transform: translateX(6px); }
 	}
 
 	.age-slider {
@@ -639,7 +638,7 @@
 		background: linear-gradient(145deg, #f5b7c6, #ec97aa);
 		cursor: pointer;
 		box-shadow: 0 4px 12px rgba(236, 167, 186, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
-		transition: all 0.3s ease;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 		border: 3px solid white;
 	}
 
@@ -660,7 +659,7 @@
 		cursor: pointer;
 		border: 3px solid white;
 		box-shadow: 0 4px 12px rgba(236, 167, 186, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
-		transition: all 0.3s ease;
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
 	}
 
 	.age-slider::-moz-range-thumb:hover {
@@ -676,40 +675,5 @@
 		height: 8px;
 		border-radius: 5px;
 		background: #e5e7eb;
-	}
-
-	.form-container {
-		transform: translateY(100vh);
-		opacity: 0;
-	}
-
-	.animate-slide-up {
-		animation: slideUp 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
-	}
-
-	@keyframes slideUp {
-		0% {
-			transform: translateY(100vh);
-			opacity: 0;
-		}
-		100% {
-			transform: translateY(0);
-			opacity: 1;
-		}
-	}
-
-	.animate-slide-down {
-		animation: slideDown 0.8s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
-	}
-
-	@keyframes slideDown {
-		0% {
-			transform: translateY(0);
-			opacity: 1;
-		}
-		100% {
-			transform: translateY(100vh);
-			opacity: 0;
-		}
 	}
 </style>

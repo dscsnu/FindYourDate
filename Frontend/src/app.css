@@ -5,6 +5,8 @@
 	--primary-color: #ECA7BA;
 	--secondary-color: #313035;
 	--background-color: #F6D6DF;
+	--accent-color: #c54285;
+	--ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Global background styling */
@@ -14,7 +16,51 @@ html, body {
 	padding: 0;
 }
 
+html {
+	-webkit-text-size-adjust: 100%;
+	-webkit-tap-highlight-color: transparent;
+}
+
 body {
+	background-color: var(--background-color);
 	background-attachment: fixed;
 	min-height: 100vh;
+	font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	color: var(--secondary-color);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+}
+
+button:not(:disabled),
+[role='button']:not([aria-disabled='true']) {
+	cursor: pointer;
+}
+
+:focus-visible {
+	outline: 3px solid var(--secondary-color);
+	outline-offset: 3px;
+	border-radius: 12px;
+}
+
+/* Images marked with the fadeIn action stay invisible until decoded,
+   so they appear smoothly instead of painting in top to bottom. */
+img.lazy-fade {
+	opacity: 0;
+	transition: opacity 0.4s var(--ease-out);
+}
+
+img.lazy-fade.is-loaded {
+	opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
 }

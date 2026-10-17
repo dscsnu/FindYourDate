@@ -1,23 +1,30 @@
-<script>
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+<script lang="ts">
+	import { onMount, tick } from 'svelte';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
+	import { goto, preloadCode } from '$app/navigation';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
+	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
 
-	let session = $state(null);
+	type ChatMessage = { id: number; text: string; sender: 'ai' | 'user' };
+	type QA = { q: string; a: string };
+
+	let session = $state<{ user: { email: string } | null; authenticated: boolean } | null>(null);
 	let loading = $state(true);
-	let userEmail = $state(null);
-	let chatHistory = $state([]);
-	let messages = $state([]);
+	let userEmail = $state<string | null>(null);
+	let chatHistory = $state<QA[]>([]);
+	let messages = $state<ChatMessage[]>([]);
 	let messageIdCounter = $state(1);
 	let newMessage = $state('');
 	let isTyping = $state(false);
 	let isComplete = $state(false);
-	let currentQuestion = $state(null);
+	let currentQuestion = $state<string | null>(null);
 	let questionNumber = $state(0);
-	let messagesContainer = $state(null);
+	let messagesContainer = $state<HTMLDivElement | null>(null);
+	let inputEl = $state<HTMLTextAreaElement | null>(null);
 	let retryAvailable = $state(false);
 
 	// Subscribe to auth store
@@ -67,13 +74,29 @@
 		}
 	});
 
-	// Auto-scroll to bottom when messages change
+	// Keep the newest message in view; smooth once the chat is on screen
+	let hasScrolled = false;
 	$effect(() => {
-		if (messages.length > 0 && messagesContainer) {
-			setTimeout(() => {
-				messagesContainer.scrollTop = messagesContainer.scrollHeight;
-			}, 100);
-		}
+		messages.length;
+		isTyping;
+		retryAvailable;
+		if (!messagesContainer) return;
+		tick().then(() => {
+			if (!messagesContainer) return;
+			messagesContainer.scrollTo({
+				top: messagesContainer.scrollHeight,
+				behavior: hasScrolled ? 'smooth' : 'instant'
+			});
+			hasScrolled = true;
+		});
+	});
+
+	// Grow the input with its content (capped by max-height in CSS)
+	$effect(() => {
+		newMessage;
+		if (!inputEl) return;
+		inputEl.style.height = 'auto';
+		inputEl.style.height = `${inputEl.scrollHeight}px`;
 	});
 
 	// Restart chat function
@@ -112,7 +135,7 @@
 			return;
 		}
 
-		userEmail = currentSession.user.email;
+		userEmail = currentSession.user?.email ?? null;
 
 		// Check user status
 		try {
@@ -203,6 +226,7 @@
 					}];
 					
 					// Redirect to end screen after 3 seconds
+					preloadCode('/endScreen');
 					setTimeout(() => {
 						goto('/endScreen');
 					}, 3000);
@@ -257,7 +281,7 @@
 		
 		// Add to chat history
 		chatHistory = [...chatHistory, {
-			q: currentQuestion,
+			q: currentQuestion as string,
 			a: userAnswer
 		}];
 		
@@ -266,9 +290,10 @@
 		
 		// Fetch next question
 		await fetchNextQuestion();
+		inputEl?.focus({ preventScroll: true });
 	}
 
-	function handleKeypress(event) {
+	function handleKeypress(event: KeyboardEvent) {
 		if (event.key === 'Enter' && !event.shiftKey) {
 			event.preventDefault();
 			sendMessage();
@@ -278,44 +303,39 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center" style="background-color: var(--primary-color);">
-		<div class="text-center">
-			<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
-				Loading chat...
-			</p>
-		</div>
-	</div>
+	<LoadingScreen message="Loading chat..." />
 {:else}
 <div class="chat-container" style="background-color: var(--primary-color);">
 	<!-- Chat Header -->
-	<div class="chat-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, #c54285 100%);">
-		<div class="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between gap-4">
+	<header class="chat-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);">
+		<div class="max-w-[52rem] mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
 			<img 
-				src="/images/logo.png" 
+				src="/images/logo.webp" 
 				alt="Find Your Date" 
-				class="h-14 w-auto object-contain shrink-0"
+				width="900"
+				height="900"
+				class="h-11 sm:h-14 w-auto object-contain shrink-0"
 			/>
-			
-			<!-- q counter badge - more prominent -->
-			{#if questionNumber > 0 && !isComplete}
-				<div class="question-badge">
-					<div class="flex items-center gap-2">
-						<svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-						</svg>
-						<div class="flex flex-col items-start">
-							<span class="text-xs opacity-90 leading-none">Question</span>
-							<span class="text-2xl font-bold leading-none">{questionNumber}/10</span>
+
+			<div class="flex items-center gap-2 sm:gap-3 min-w-0">
+				<!-- q counter badge - more prominent -->
+				{#if questionNumber > 0 && !isComplete}
+					<div class="question-badge" aria-live="polite">
+						<div class="flex items-center gap-2">
+							<svg class="hidden sm:block w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							<div class="flex flex-col items-start">
+								<span class="text-[10px] sm:text-xs opacity-90 leading-none">Question</span>
+								<span class="text-lg sm:text-2xl font-bold leading-none tabular-nums">{questionNumber}/10</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/if}
+				{/if}
 				{#if messages.length > 0 && !isComplete}
 					<button
 						onclick={restartChat}
-						class="text-white text-xs sm:text-sm font-medium px-2 sm:px-3 py-1.5 sm:py-2 rounded-full border border-white hover:bg-white hover:text-[var(--primary-color)] transition-all duration-200 whitespace-nowrap"
-						style="font-family: 'Nunito', sans-serif;"
+						class="text-white text-xs sm:text-sm font-semibold px-3 py-1.5 sm:py-2 rounded-full border border-white/80 hover:bg-white hover:text-[var(--accent-color)] transition-colors duration-200 whitespace-nowrap"
 						title="Restart chat"
 					>
 						Restart
@@ -323,95 +343,86 @@
 				{/if}
 				<SignOutButton />
 			</div>
-		
+		</div>
 		
 		<!-- prog bar -->
-		{#if questionNumber > 0 && !isComplete}
-			<div class="progress-container">
-				<div class="progress-bar" style="width: {(questionNumber / 10) * 100}%"></div>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Chat Messages Container -->
-	<div bind:this={messagesContainer} class="chat-messages px-4 py-6" style="background: white; border-radius: 20px 20px 0 0;">
-		<div class="max-w-5xl mx-auto space-y-4">
-			{#each messages as message (message.id)}
-				<div class="flex {message.sender === 'user' ? 'justify-end' : 'justify-start'}">
-					<div class="flex items-end gap-2 max-w-[70%] {message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}">
-						
-						<!-- Message Bubble -->
-						<div class="flex flex-col {message.sender === 'user' ? 'items-end' : 'items-start'}">
-							<div 
-								class="rounded-2xl px-4 py-3 shadow-sm"
-								style="{message.sender === 'user' 
-									? `background-color: var(--primary-color); color: white;` 
-									: 'background-color: #F1F1F3; color: var(--secondary-color);'} font-family: 'Nunito', sans-serif;"
-							>
-								<p class="text-sm md:text-base">{message.text}</p>
-							</div>
-						</div>
-					</div>
-				</div>
-			{/each}
-
-			{#if retryAvailable && !isTyping}
-				<div class="flex justify-start">
-					<button
-						onclick={retryQuestion}
-						class="rounded-full px-5 py-2 text-sm font-semibold text-white transition-all duration-200 hover:opacity-90"
-						style="background-color: var(--primary-color); font-family: 'Nunito', sans-serif;"
-					>
-						Try again
-					</button>
-				</div>
-			{/if}
-
-			<!-- Typing Indicator -->
-			{#if isTyping}
-				<div class="flex justify-start">
-					<div class="flex items-end gap-2 max-w-[70%]">
-						<div class="flex flex-col items-start">
-							<div 
-								class="rounded-2xl px-4 py-3 shadow-sm typing-indicator"
-								style="background-color: #F1F1F3;"
-							>
-								<div class="flex gap-1">
-									<div class="dot"></div>
-									<div class="dot"></div>
-									<div class="dot"></div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			{/if}
+		<div class="progress-container" class:is-hidden={!(questionNumber > 0 && !isComplete)}>
+			<div class="progress-bar" style="transform: scaleX({isComplete ? 1 : questionNumber / 10})"></div>
 		</div>
-	</div>
+	</header>
 
-	<!-- Message Input Area -->
-	<div class="chat-input bg-white shadow-lg">
-		<div class="max-w-5xl mx-auto px-4 py-4">
-			<form onsubmit={(e) => { e.preventDefault(); sendMessage(); }} class="flex items-center gap-3">
-				<div class="flex-1">
-					<textarea
-						bind:value={newMessage}
-						onkeydown={handleKeypress}
-						disabled={isTyping || isComplete}
-						placeholder={isTyping ? 'Thinking...' : 'Type your message...'}
-						rows="1"
-						class="w-full px-4 py-3 rounded-full resize-none focus:ring-2 focus:border-transparent outline-none transition-all"
-						style="border: 1px solid var(--secondary-color); font-family: 'Nunito', sans-serif; max-height: 120px;"
-					></textarea>
-				</div>
-				<!-- svelte-ignore a11y_consider_explicit_label -->
+	<!-- Chat panel: full-bleed sheet on mobile, centered card on desktop -->
+	<div class="chat-panel">
+		<!-- Chat Messages Container -->
+		<div bind:this={messagesContainer} class="chat-messages px-4 sm:px-6 py-6" aria-live="polite">
+			<div class="space-y-3 sm:space-y-4">
+				{#each messages as message (message.id)}
+					<div
+						class="flex {message.sender === 'user' ? 'justify-end' : 'justify-start'}"
+						in:fly={{ y: 12, duration: 300, easing: cubicOut }}
+					>
+						<div 
+							class="bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 shadow-sm {message.sender === 'user' ? 'rounded-br-md' : 'rounded-bl-md'}"
+							style="{message.sender === 'user' 
+								? `background-color: var(--primary-color); color: white;` 
+								: 'background-color: #F1F1F3; color: var(--secondary-color);'}"
+						>
+							<p class="text-[15px] md:text-base leading-relaxed whitespace-pre-wrap break-words">{message.text}</p>
+						</div>
+					</div>
+				{/each}
+
+				{#if retryAvailable && !isTyping}
+					<div class="flex justify-start" in:fly={{ y: 8, duration: 250 }}>
+						<button
+							onclick={retryQuestion}
+							class="rounded-full px-5 py-2 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90"
+							style="background-color: var(--primary-color);"
+						>
+							Try again
+						</button>
+					</div>
+				{/if}
+
+				<!-- Typing Indicator -->
+				{#if isTyping}
+					<div class="flex justify-start" in:fly={{ y: 8, duration: 250 }} role="status" aria-label="Thinking">
+						<div 
+							class="rounded-2xl rounded-bl-md px-4 py-4 shadow-sm typing-indicator"
+							style="background-color: #F1F1F3;"
+						>
+							<div class="flex gap-1">
+								<div class="dot"></div>
+								<div class="dot"></div>
+								<div class="dot"></div>
+							</div>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Message Input Area -->
+		<div class="chat-input">
+			<form onsubmit={(e) => { e.preventDefault(); sendMessage(); }} class="flex items-end gap-2 sm:gap-3">
+				<textarea
+					bind:this={inputEl}
+					bind:value={newMessage}
+					onkeydown={handleKeypress}
+					disabled={isTyping || isComplete}
+					placeholder={isTyping ? 'Thinking...' : 'Type your message...'}
+					aria-label="Your answer"
+					rows="1"
+					class="flex-1 min-w-0 px-5 py-3 rounded-3xl resize-none outline-none transition-shadow duration-200 disabled:bg-gray-50"
+				></textarea>
 				<button
 					type="submit"
 					disabled={isTyping || isComplete || !newMessage.trim()}
-					class="px-6 py-3 rounded-full text-white font-medium hover:opacity-90 transition-all duration-200 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-					style="background-color: var(--primary-color); font-family: 'Nunito', sans-serif;"
+					aria-label="Send message"
+					class="send-btn h-12 w-12 sm:w-auto sm:px-6 flex items-center justify-center rounded-full text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+					style="background-color: var(--primary-color);"
 				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
 					</svg>
 				</button>
@@ -443,19 +454,19 @@
 	.question-badge {
 		background: rgba(255, 255, 255, 0.25);
 		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
 		border: 2px solid rgba(255, 255, 255, 0.4);
-		border-radius: 16px;
-		padding: 0.75rem 1.25rem;
+		border-radius: 14px;
+		padding: 0.4rem 0.75rem;
 		color: white;
-		font-family: 'Nunito', sans-serif;
 		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-		transition: all 0.3s ease;
 	}
 
-	.question-badge:hover {
-		background: rgba(255, 255, 255, 0.35);
-		transform: translateY(-2px);
-		box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+	@media (min-width: 640px) {
+		.question-badge {
+			border-radius: 16px;
+			padding: 0.6rem 1.1rem;
+		}
 	}
 
 	/* prog bar container */
@@ -465,19 +476,51 @@
 		background: rgba(255, 255, 255, 0.2);
 		position: relative;
 		overflow: hidden;
+		transition: opacity 0.3s;
 	}
 
-	/* prog bar fill */
+	.progress-container.is-hidden {
+		opacity: 0;
+	}
+
+	/* prog bar fill: scaleX animates on the compositor, unlike width */
 	.progress-bar {
 		height: 100%;
+		width: 100%;
+		transform-origin: left center;
 		background: linear-gradient(90deg, #ffffff 0%, #ffe6f0 100%);
-		transition: width 0.5s ease-in-out;
+		transition: transform 0.6s var(--ease-out);
 		box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+	}
+
+	.chat-panel {
+		flex: 1;
+		min-height: 0; /* Important for flex scrolling */
+		width: 100%;
+		max-width: 52rem;
+		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		background: white;
+		border-radius: 20px 20px 0 0;
+		overflow: hidden;
+		margin-top: 0.75rem;
+	}
+
+	/* Desktop: a floating card with breathing room instead of an edge-to-edge sheet */
+	@media (min-width: 1024px) {
+		.chat-panel {
+			margin: 1.5rem auto;
+			border-radius: 28px;
+			box-shadow: 0 30px 60px -20px rgba(49, 48, 53, 0.35);
+		}
 	}
 
 	.chat-messages {
 		flex: 1;
 		overflow-y: auto;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
 		scrollbar-width: thin;
 		scrollbar-color: var(--primary-color) transparent;
 		min-height: 0; /* Important for flex scrolling */
@@ -498,13 +541,45 @@
 
 	.chat-input {
 		flex-shrink: 0;
-		position: sticky;
-		bottom: 0;
-		z-index: 100;
+		padding: 0.75rem 1rem;
+		padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+		border-top: 1px solid #f1f1f3;
+		background: white;
+	}
+
+	@media (min-width: 640px) {
+		.chat-input {
+			padding: 1rem 1.5rem;
+		}
 	}
 	
 	textarea {
 		scrollbar-width: thin;
+		border: 1px solid var(--secondary-color);
+		max-height: 120px;
+		line-height: 1.5;
+	}
+
+	textarea:focus,
+	textarea:focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(236, 167, 186, 0.6);
+	}
+
+	.send-btn {
+		transition: transform 0.2s var(--ease-out), opacity 0.2s;
+	}
+
+	.send-btn:hover:not(:disabled) {
+		transform: scale(1.05);
+	}
+
+	.send-btn:active:not(:disabled) {
+		transform: scale(0.95);
+	}
+
+	.bubble {
+		overflow-wrap: anywhere;
 	}
 
 	.typing-indicator .dot {
@@ -535,7 +610,7 @@
 		}
 		30% {
 			opacity: 1;
-			transform: translateY(-10px);
+			transform: translateY(-6px);
 		}
 	}
 </style>

@@ -52,7 +52,7 @@
 	<div class="text-center">
 		{#if loading}
 			<div class="flex flex-col items-center gap-4">
-				<div class="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+				<div class="w-16 h-16 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
 				<p class="text-xl font-semibold" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
 					Completing sign in...
 				</p>
@@ -70,8 +70,8 @@
 				</p>
 				<button
 					onclick={() => goto('/')}
-					class="mt-4 px-6 py-3 bg-pink-500 text-white rounded-full font-medium hover:bg-pink-600 transition-all duration-200"
-					style="font-family: 'Montserrat', sans-serif;"
+					class="mt-4 px-6 py-3 text-white rounded-full font-semibold shadow-md hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200"
+					style="background-color: var(--secondary-color);"
 				>
 					Back to Home
 				</button>

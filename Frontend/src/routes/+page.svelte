@@ -1,14 +1,14 @@
 <script>
-  import { goto } from "$app/navigation";
-	import { onMount, onDestroy } from 'svelte';
+  import { goto, preloadCode } from "$app/navigation";
+	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
-    import { configStore } from '$lib/stores/config';
+	import { configStore } from '$lib/stores/config';
+	import { fadeIn } from '$lib/actions/fadeIn';
+	import FloatingHearts from '$lib/components/FloatingHearts.svelte';
+	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
 
-	let hearts = $state([]);
-	let heartIdCounter = 0;
-	const MAX_HEARTS = 4;
 	let loading = $state(false);
 	let checkingStatus = $state(true);
   let round1ResultPublished = $state(false);
@@ -63,30 +63,9 @@
 		}
 	}
 
-	function createHeart() {
-		if (hearts.length >= MAX_HEARTS) return;
-
-		const heart = {
-			id: heartIdCounter++,
-			left: Math.random() * 100, // Random horizontal position (0-100%)
-			duration: 3 + Math.random() * 2, // Random duration between 3-5 seconds
-			delay: Math.random() * 1, // Random delay 0-1 second
-			size: 100 + Math.random() * 50, // Random size between 100-150px
-			rotation: (Math.random() * 90) - 45 // Random rotation between -45 to 45 degrees
-		};
-
-		hearts = [...hearts, heart];
-
-		// Remove heart after animation completes
-		setTimeout(() => {
-			hearts = hearts.filter(h => h.id !== heart.id);
-		}, (heart.duration + heart.delay) * 1000);
-	}
-
-	let heartInterval;
-
 	onMount(async () => {
-		heartInterval = setInterval(createHeart, 1500);
+		// Most visitors go straight to the form next; fetch its code while they read.
+		preloadCode('/userForm');
 
 		round1ResultPublished = get(configStore).round1ResultPublished;
 
@@ -99,67 +78,44 @@
 			checkingStatus = false;
 		}
 	});
-
-	onDestroy(() => clearInterval(heartInterval));
 </script>
 
 {#if checkingStatus}
-	<div class="flex items-center justify-center min-h-screen" style="background-color: var(--primary-color);">
-		<div class="text-center">
-			<div class="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-			<p class="text-xl font-semibold text-white" style="font-family: 'Nunito', sans-serif;">
-				Loading...
-			</p>
-		</div>
-	</div>
+	<LoadingScreen />
 {:else}
-<div class="flex items-center justify-center min-h-screen px-4">
-	<!-- Floating Hearts Background -->
-	<div class="floating-hearts-container">
-		{#each hearts as heart (heart.id)}
-			<img 
-				src="/images/heart.png"
-				alt="heart"
-				class="floating-heart"
-				style="
-					left: {heart.left}%;
-					animation-duration: {heart.duration}s;
-					animation-delay: {heart.delay}s;
-					width: {heart.size}px;
-					height: {heart.size}px;
-					transform: rotate({heart.rotation}deg);
-				"
-			/>
-		{/each}
-	</div>
+<main class="flex items-center justify-center min-h-screen px-6 py-12 lg:px-12">
+	<FloatingHearts />
 
-	<div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 max-w-6xl w-full relative z-10">
+	<div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-20 max-w-5xl w-full relative z-10">
 		<!-- Image Section -->
-		<div class="shrink-0">
+		<div class="shrink-0 w-full max-w-[18rem] sm:max-w-sm lg:max-w-md lg:flex-1 landing-rise">
 			<img 
-				src="/images/logo.png" 
-				alt="Find Your Date placeholder" 
-				class="max-w-md w-full h-auto rounded-lg"
+				src="/images/logo.webp" 
+				alt="Find Your Date" 
+				width="900"
+				height="900"
+				fetchpriority="high"
+				use:fadeIn
+				class="w-full h-auto rounded-lg drop-shadow-xl"
 			/>
 		</div>
 		
 		<!-- Text and Button Section -->
-		<div class="text-center lg:text-left flex flex-col items-center lg:items-start">
-			<p class="text-lg md:text-xl font-bold mb-6 max-w-md" style="color: var(--secondary-color); font-family: 'Nunito', sans-serif;">
+		<div class="text-center lg:text-left flex flex-col items-center lg:items-start lg:flex-1 landing-rise" style="animation-delay: 120ms;">
+			<p class="text-lg md:text-xl lg:text-3xl font-bold lg:font-extrabold mb-6 lg:mb-8 max-w-md lg:leading-snug text-balance" style="color: var(--secondary-color);">
 				Find your ideal prom date! 
 				Tell us who you are, 
 				and let our AI match you with your perfect vibe.
 			</p>
 			<button onclick={signInWithGoogle} 
-				class="flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-full text-gray-700 font-medium text-base hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-				style="font-family: 'Montserrat', sans-serif;"
+				class="flex items-center justify-center gap-3 px-6 py-3 lg:px-8 lg:py-4 bg-white border border-gray-300 rounded-full text-gray-700 font-semibold text-base lg:text-lg shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
 				disabled={loading}
 			>
 				{#if loading}
 					<div class="w-5 h-5 border-2 border-gray-700 border-t-transparent rounded-full animate-spin"></div>
 					<span>Signing in...</span>
 				{:else}
-					<svg width="20" height="20" viewBox="0 0 24 24">
+					<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
 						<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
 						<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
 						<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -169,50 +125,29 @@
 				{/if}
 			</button>
 			<div class="ml-2 mt-3 flex items-center gap-2">
-				<img src="/icons/information-icon.png" alt="Info" class="w-4 h-4" />
-				<p class="text-sm font-semibold" style="color: white; font-family: 'Nunito', sans-serif;">
+				<img src="/icons/information-icon.png" alt="" width="64" height="64" class="w-4 h-4" />
+				<p class="text-sm font-semibold" style="color: white;">
 					Sign in with your SNU mail ID
 				</p>
 			</div>
 		</div>
 	</div>
-</div>
+</main>
 {/if}
 
 <style>
-	.floating-hearts-container {
-		position: fixed;
-		top: 0;
-		left: 0;
-		width: 100%;
-		height: 100%;
-		pointer-events: none;
-		overflow: hidden;
-		z-index: 0;
+	.landing-rise {
+		animation: rise 0.7s var(--ease-out) both;
 	}
 
-	.floating-heart {
-		position: absolute;
-		bottom: -60px;
-		opacity: 0;
-		animation: floatUp linear forwards;
-		pointer-events: none;
-	}
-
-	@keyframes floatUp {
-		0% {
-			bottom: -60px;
+	@keyframes rise {
+		from {
 			opacity: 0;
+			transform: translate3d(0, 16px, 0);
 		}
-		10% {
-			opacity: 0.8;
-		}
-		90% {
-			opacity: 0.8;
-		}
-		100% {
-			bottom: 110vh;
-			opacity: 0;
+		to {
+			opacity: 1;
+			transform: none;
 		}
 	}
 </style>
