@@ -27,7 +27,7 @@
 >
 	{#if isLoggingOut}
 		<span class="flex items-center gap-2">
-			<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+			<div class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
 			Signing out...
 		</span>
 	{:else}
@@ -37,16 +37,14 @@
 
 <style>
 	.sign-out-btn {
-		background-color: var(--primary-color);
-		color: white;
-		/* Outline keeps the button visible on the pink page backgrounds */
-		border: 1.5px solid rgba(255, 255, 255, 0.85);
+		/* White pill with dark text stays readable on every pink background */
+		background-color: white;
+		color: var(--secondary-color);
 		box-shadow: 0 2px 8px rgba(49, 48, 53, 0.12);
 	}
 
 	.sign-out-btn:hover:not(:disabled) {
-		background-color: white;
-		color: var(--secondary-color);
+		background-color: #fdf0f4;
 		transform: scale(1.02);
 	}
 

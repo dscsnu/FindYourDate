@@ -288,6 +288,27 @@
 		}
 	}
 
+	// Only the latest answer is editable: pull it back into the input and drop the
+	// question that followed, so sending it again regenerates that question.
+	let lastUserId = $derived(messages.findLast((m) => m.sender === 'user')?.id);
+	// While an answer is pulled back for editing, the one before it must not become editable too.
+	let editing = $state(false);
+	let canEdit = $derived(!editing && !isTyping && !isComplete && chatHistory.length > 0);
+
+	function editLastAnswer() {
+		if (!canEdit) return;
+		const idx = messages.findIndex((m) => m.id === lastUserId);
+		const last = chatHistory[chatHistory.length - 1];
+		messages = messages.slice(0, idx);
+		chatHistory = chatHistory.slice(0, -1);
+		currentQuestion = last.q;
+		questionNumber = chatHistory.length + 1;
+		retryAvailable = false;
+		editing = true;
+		newMessage = last.a;
+		tick().then(() => inputEl?.focus());
+	}
+
 	function retryQuestion() {
 		retryAvailable = false;
 		fetchNextQuestion();
@@ -313,6 +334,7 @@
 		
 		// Clear input
 		newMessage = '';
+		editing = false;
 		
 		// Fetch next question
 		await fetchNextQuestion();
@@ -346,22 +368,14 @@
 			<div class="flex items-center gap-2 sm:gap-3 min-w-0">
 				<!-- q counter badge - more prominent -->
 				{#if questionNumber > 0 && !isComplete}
-					<div class="question-badge" aria-live="polite">
-						<div class="flex items-center gap-2">
-							<svg class="hidden sm:block w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-							</svg>
-							<div class="flex flex-col items-start">
-								<span class="text-[10px] sm:text-xs opacity-90 leading-none">Question</span>
-								<span class="text-lg sm:text-2xl font-bold leading-none tabular-nums">{questionNumber}/10</span>
-							</div>
-						</div>
+					<div class="question-badge text-xs sm:text-sm font-semibold tabular-nums whitespace-nowrap" aria-live="polite">
+						{questionNumber} <span class="opacity-75">of 10</span>
 					</div>
 				{/if}
 				{#if messages.length > 0 && !isComplete}
 					<button
 						onclick={restartChat}
-						class="text-white text-xs sm:text-sm font-semibold px-3 py-1.5 sm:py-2 rounded-full border border-white/80 hover:bg-white hover:text-[var(--accent-color)] transition-colors duration-200 whitespace-nowrap"
+						class="header-pill px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-semibold text-xs sm:text-sm whitespace-nowrap transition-all duration-200"
 						title="Restart chat"
 					>
 						Restart
@@ -388,23 +402,26 @@
 						in:fly={{ y: 12, duration: 300, easing: cubicOut }}
 					>
 						<div 
-							class="bubble max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 shadow-sm {message.sender === 'user' ? 'rounded-br-md' : 'rounded-bl-md'}"
-							style="{message.sender === 'user' 
-								? `background-color: var(--primary-color); color: white;` 
-								: 'background-color: #F1F1F3; color: var(--secondary-color);'}"
-						>
+							class="bubble max-w-[85%] sm:max-w-[75%] rounded-[20px] px-4 py-2.5 {message.sender === 'user' ? 'bubble-user rounded-br-md' : 'bubble-ai rounded-bl-md'}"
+							>
 							<p class="text-[15px] md:text-base leading-relaxed whitespace-pre-wrap break-words">{message.text}</p>
 						</div>
 					</div>
+					{#if message.id === lastUserId && canEdit}
+						<div class="flex justify-end -mt-1.5 sm:-mt-2.5">
+							<button onclick={editLastAnswer} class="edit-btn text-xs font-semibold px-2 py-1 rounded-full">
+								Edit
+							</button>
+						</div>
+					{/if}
 				{/each}
 
 				{#if retryAvailable && !isTyping}
 					<div class="flex justify-start" in:fly={{ y: 8, duration: 250 }}>
 						<button
 							onclick={retryQuestion}
-							class="rounded-full px-5 py-2 text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90"
-							style="background-color: var(--primary-color);"
-						>
+							class="send-btn rounded-full px-5 py-2 text-sm font-semibold text-white"
+							>
 							Try again
 						</button>
 					</div>
@@ -414,9 +431,8 @@
 				{#if isTyping}
 					<div class="flex justify-start" in:fly={{ y: 8, duration: 250 }} role="status" aria-label="Thinking">
 						<div 
-							class="rounded-2xl rounded-bl-md px-4 py-4 shadow-sm typing-indicator"
-							style="background-color: #F1F1F3;"
-						>
+							class="bubble-ai rounded-[20px] rounded-bl-md px-4 py-3.5 typing-indicator"
+							>
 							<div class="flex gap-1">
 								<div class="dot"></div>
 								<div class="dot"></div>
@@ -430,7 +446,7 @@
 
 		<!-- Message Input Area -->
 		<div class="chat-input">
-			<form onsubmit={(e) => { e.preventDefault(); sendMessage(); }} class="flex items-end gap-2 sm:gap-3">
+			<form onsubmit={(e) => { e.preventDefault(); sendMessage(); }} class="input-shell flex items-end gap-2 pl-4 pr-1.5 py-1.5">
 				<textarea
 					bind:this={inputEl}
 					bind:value={newMessage}
@@ -439,18 +455,17 @@
 					placeholder={isTyping ? 'Thinking...' : 'Type your message...'}
 					aria-label="Your answer"
 					rows="1"
-					class="flex-1 min-w-0 px-5 py-3 rounded-3xl resize-none outline-none transition-shadow duration-200 disabled:bg-gray-50"
+					class="flex-1 min-w-0 py-2 bg-transparent resize-none outline-none"
 				></textarea>
 				<button
 					type="submit"
 					disabled={isTyping || isComplete || !newMessage.trim()}
 					aria-label="Send message"
-					class="send-btn h-12 w-12 sm:w-auto sm:px-6 flex items-center justify-center rounded-full text-white shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-					style="background-color: var(--primary-color);"
-				>
-					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-					</svg>
+					class="send-btn h-10 w-10 flex items-center justify-center rounded-full text-white shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19V5m0 0l-6 6m6-6l6 6"/>
+						</svg>
 				</button>
 			</form>
 		</div>
@@ -479,21 +494,27 @@
 
 	/* q badge styling */
 	.question-badge {
-		background: rgba(255, 255, 255, 0.25);
-		backdrop-filter: blur(10px);
-		-webkit-backdrop-filter: blur(10px);
-		border: 2px solid rgba(255, 255, 255, 0.4);
-		border-radius: 14px;
-		padding: 0.4rem 0.75rem;
+		background: rgba(49, 48, 53, 0.18);
+		border-radius: 9999px;
+		padding: 0.375rem 0.75rem;
 		color: white;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 	}
 
 	@media (min-width: 640px) {
 		.question-badge {
-			border-radius: 16px;
-			padding: 0.6rem 1.1rem;
+			padding: 0.5rem 1rem;
 		}
+	}
+
+	/* Matches SignOutButton so the header actions read as one set */
+	.header-pill {
+		background-color: white;
+		color: var(--secondary-color);
+		box-shadow: 0 2px 8px rgba(49, 48, 53, 0.12);
+	}
+
+	.header-pill:hover {
+		background-color: #fdf0f4;
 	}
 
 	/* prog bar container */
@@ -568,10 +589,22 @@
 
 	.chat-input {
 		flex-shrink: 0;
-		padding: 0.75rem 1rem;
+		padding: 0.5rem 0.75rem;
 		padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
-		border-top: 1px solid #f1f1f3;
 		background: white;
+	}
+
+	.input-shell {
+		background: #f5f3f6;
+		border: 1.5px solid transparent;
+		border-radius: 26px;
+		transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+	}
+
+	.input-shell:focus-within {
+		background: white;
+		border-color: var(--primary-color);
+		box-shadow: 0 0 0 4px rgba(236, 167, 186, 0.25);
 	}
 
 	@media (min-width: 640px) {
@@ -582,18 +615,22 @@
 	
 	textarea {
 		scrollbar-width: thin;
-		border: 1px solid var(--secondary-color);
 		max-height: 120px;
 		line-height: 1.5;
+		color: var(--secondary-color);
 	}
 
-	textarea:focus,
+	textarea::placeholder {
+		color: #9a97a0;
+	}
+
+	/* The shell's focus ring already marks focus; skip the global outline inside it */
 	textarea:focus-visible {
 		outline: none;
-		box-shadow: 0 0 0 3px rgba(236, 167, 186, 0.6);
 	}
 
 	.send-btn {
+		background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
 		transition: transform 0.2s var(--ease-out), opacity 0.2s;
 	}
 
@@ -607,6 +644,28 @@
 
 	.bubble {
 		overflow-wrap: anywhere;
+	}
+
+	.edit-btn {
+		color: var(--accent-color);
+		opacity: 0.8;
+		transition: opacity 0.2s, background-color 0.2s;
+	}
+
+	.edit-btn:hover {
+		opacity: 1;
+		background-color: #fdf0f4;
+	}
+
+	.bubble-ai {
+		background-color: #f5f3f6;
+		color: var(--secondary-color);
+	}
+
+	/* Header gradient so white text stays readable (plain primary pink was too light) */
+	.bubble-user {
+		background: linear-gradient(135deg, var(--primary-color) -40%, var(--accent-color) 100%);
+		color: white;
 	}
 
 	.typing-indicator .dot {
