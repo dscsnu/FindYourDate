@@ -10,6 +10,20 @@ from app.utils.embeddings import get_text_embedding
 
 logger = logging.getLogger(__name__)
 
+# (topic, base question) per slot. The base question doubles as the fallback when the LLM fails.
+QUESTION_TOPICS = [
+    ("signature quirk", "What's the most 'you' thing you've ever done?"),
+    ("how friends see them", "If your friends had to describe you in three words, what would they say?"),
+    ("little joys", "What's a small thing that instantly makes your day better?"),
+    ("humour and social ease", "What's your go-to move when a conversation gets awkward?"),
+    ("adventurousness", "What's something on your bucket list you'd actually do this year?"),
+    ("ideal free day", "What's your ideal way to spend a free Saturday?"),
+    ("social energy", "At a party, where would we find you: dance floor, snack table, or deep in conversation?"),
+    ("music taste", "What song would you request at prom, and why?"),
+    ("current obsession", "What's your current obsession: a show, game, food, anything?"),
+    ("hobby or skill", "What's a hobby or skill you'd love to show off to your date?"),
+]
+
 
 def process_and_embed_chat(user_email: str, chat_history: List[Dict[str, str]]):
     if not chat_history or len(chat_history) == 0:
@@ -115,72 +129,39 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
         
         return response
     
-    # Determine category based on question number
-    if current_count < 5:
-        category = "personality"
-        category_description = "personality, quirks, sense of humour, little joys, how they act around people"
-    else:
-        category = "social_energy"
-        category_description = "social life, weekends, parties, music, hobbies, energy levels"
-    
+    # Every user answers the same topic per slot so their embeddings stay comparable;
+    # the LLM only rephrases. Slots 0-4 are personality, 5-9 social (see process_and_embed_chat).
+    category = "personality" if current_count < 5 else "social_energy"
+    topic, base_question = QUESTION_TOPICS[current_count]
+
     # Build conversation context for LLM
     conversation_context = ""
     if chat_history:
         conversation_context = "Previous conversation:\n"
         for i, entry in enumerate(chat_history, 1):
             conversation_context += f"Q{i}: {entry.get('q', '')}\nA{i}: {entry.get('a', '')}\n\n"
-    
-    # Create LLM prompt
-    if current_count == 0:
-        # First question
-        system_prompt = """You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. Ask ONE light, playful question that reveals their personality.
 
-        CRITICAL RULES:
-        - Return ONLY the question - NO introductions like "Sure, here's", "Here is", etc.
-        - It's for finding a prom date, so keep it fun and low-stakes - never deep, heavy or interview-like
-        - Avoid serious topics: life goals, values, conflict, ideal relationships, career
-        - Keep it SHORT (under 20 words), casual, like a friend asking at a party
-        - Ask for an answer in words (no "answer in emojis" or one-word/yes-no questions)
-        - Keep content appropriate for ages 16+ (PG-16), nothing sexual
+    system_prompt = """You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. You ask ONE light, playful question at a time.
 
-        Examples of the right vibe:
-        - What's the most 'you' thing you've ever done?
-        - If your friends had to describe you in three words, what would they say?
-        - What's a small thing that instantly makes your day better?"""
-
-        user_prompt = "Ask the first fun question about their personality. Just the question, nothing else."
-
-    else:
-        # Follow-up questions
-        system_prompt = f"""You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. Ask ONE light, playful, personalized question.
-
-        Current focus: {category_description}
+        Every user gets the SAME topic for each question number, so answers can be compared fairly for matching.
 
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
+        - The question MUST be about the given topic and ask the same thing as the base question - you may only change the wording
+        - Only every 3rd question or so, add a small playful nod to an earlier answer at the START (e.g. "Okay, pizza-dare legend...") - most questions should have no nod, and never reuse a nod already used in the conversation
+        - NEVER suggest example answers drawn from their earlier answers (no "like a surprise pizza slice") - it steers what they write
         - It's for finding a prom date, so keep it fun and low-stakes - never deep, heavy or interview-like
-        - Avoid serious topics: life goals, values, conflict, ideal relationships, career
         - Keep it SHORT (under 25 words), casual, like a friend asking at a party
         - Ask for an answer in words (no "answer in emojis" or yes/no questions)
-        - Keep content appropriate - avoid sexual/controversial topics, divert topic in case
-        - About half the time, pick up a specific detail from one of their earlier answers and spin a new, playful question off it (e.g. they mentioned biryani -> "Would you cook biryani for your prom date, or would you rather be fed?")
-        - For personality (1-5): quirks, humour, little joys, how they act around people
-        - For social (6-10): weekends, parties, music, current obsessions, hobbies, energy levels
-        - Every question must cover a NEW topic - never repeat a theme already asked (e.g. only ONE question about making people laugh, only ONE about parties)
+        - Keep content appropriate for ages 16+ (PG-16) - nothing sexual or controversial"""
 
-        Examples of the right vibe:
-        - What's your go-to move when a conversation gets awkward?
-        - At a party, where would we find you: dance floor, snack table, or deep in conversation?
-        - What song would you request at prom, and why?
-        - What's your current obsession: a show, game, food, anything?
-        """
-        
-        user_prompt = f"""Generate question #{current_count + 1} about {category_description}.
+    user_prompt = f"""Question #{current_count + 1} of 10.
+Topic: {topic}
+Base question: {base_question}
 
 {conversation_context}
+Rephrase the base question in a fun way for this person. Return ONLY the question text."""
 
-Return ONLY the question text - no greetings, no introductions, just the question."""
-    
     try:
         # Call OpenAI API
         with llm_slot():
@@ -217,21 +198,8 @@ Return ONLY the question text - no greetings, no introductions, just the questio
     except Exception:
         # Fallback questions if LLM fails
         logger.exception("LLM question generation failed, using fallback")
-        fallback_questions = {
-            0: "What's the most 'you' thing you've ever done?",
-            1: "If your friends had to describe you in three words, what would they say?",
-            2: "What's a small thing that instantly makes your day better?",
-            3: "What's your go-to move when a conversation gets awkward?",
-            4: "What's something on your bucket list you'd actually do this year?",
-            5: "What's your ideal way to spend a free Saturday?",
-            6: "At a party, where would we find you: dance floor, snack table, or deep in conversation?",
-            7: "What song would you request at prom, and why?",
-            8: "What's your current obsession: a show, game, food, anything?",
-            9: "What's a hobby or skill you'd love to show off to your date?"
-        }
-        
         return {
-            "question": fallback_questions.get(current_count, "Tell me more about yourself."),
+            "question": base_question,
             "is_complete": False,
             "question_number": current_count + 1,
             "total_questions": 10,
