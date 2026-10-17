@@ -46,6 +46,14 @@ function createAuthStore() {
 				console.error('Logout error:', error);
 			}
 
+			// Drop saved chat progress and user_id so the next person on this device starts clean.
+			try {
+				localStorage.clear();
+				sessionStorage.clear();
+			} catch {
+				// Storage can be blocked (private mode); nothing to clear then.
+			}
+
 			set(null);
 		},
 	};
