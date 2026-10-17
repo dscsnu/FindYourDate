@@ -29,7 +29,7 @@
 				</div>
 				
 				<!-- Main heading -->
-				<h1 class="text-3xl md:text-4xl font-bold" style="color: var(--secondary-color);">
+				<h1 class="text-2xl md:text-3xl font-bold" style="color: var(--secondary-color);">
 					Forms Are Now Closed!
 				</h1>
 				

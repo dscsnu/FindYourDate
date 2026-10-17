@@ -88,7 +88,7 @@
       width="900"
       height="900"
       use:fadeIn
-      class="w-40 sm:w-52 lg:w-80 h-auto drop-shadow-lg shrink-0"
+      class="w-40 sm:w-48 lg:w-72 h-auto drop-shadow-lg shrink-0"
     />
 
     <section class="card w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 py-8 sm:px-10 sm:py-10 text-center" in:scale={{ start: 0.96, duration: 400, easing: cubicOut }}>
@@ -215,7 +215,7 @@
     padding: 0.75rem 1.5rem;
     border: none;
     border-radius: 9999px;
-    font-weight: 700;
+    font-weight: 600;
     transition: transform 0.2s var(--ease-out), filter 0.2s, background-color 0.2s;
   }
 

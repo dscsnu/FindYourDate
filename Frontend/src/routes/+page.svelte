@@ -102,13 +102,13 @@
 		
 		<!-- Text and Button Section -->
 		<div class="text-center lg:text-left flex flex-col items-center lg:items-start lg:flex-1 landing-rise" style="animation-delay: 120ms;">
-			<p class="text-lg md:text-xl lg:text-3xl font-bold lg:font-extrabold mb-6 lg:mb-8 max-w-md lg:leading-snug text-balance" style="color: var(--secondary-color);">
+			<p class="text-lg md:text-xl lg:text-2xl font-bold lg:font-extrabold mb-6 max-w-md lg:leading-snug text-balance" style="color: var(--secondary-color);">
 				Find your ideal prom date! 
 				Tell us who you are, 
 				and let our AI match you with your perfect vibe.
 			</p>
 			<button onclick={signInWithGoogle} 
-				class="flex items-center justify-center gap-3 px-6 py-3 lg:px-8 lg:py-4 bg-white border border-gray-300 rounded-full text-gray-700 font-semibold text-base lg:text-lg shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+				class="flex items-center justify-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-full text-gray-700 font-semibold text-base shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-gray-400 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
 				disabled={loading}
 			>
 				{#if loading}

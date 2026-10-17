@@ -240,7 +240,7 @@
 			height="192"
 			decoding="async"
 			use:fadeIn
-			class="w-14 h-14 sm:w-20 sm:h-20 object-contain"
+			class="w-12 h-12 sm:w-16 sm:h-16 object-contain"
 		/>
 		<span class="text-sm sm:text-base font-semibold leading-tight text-center" style="color: var(--secondary-color);">
 			{label}
@@ -266,12 +266,12 @@
 		<!-- Intro Screen -->
 		<section class="flex items-center justify-center px-6 py-20" out:fade={{ duration: 200 }}>
 			<div class="text-center space-y-8 max-w-2xl">
-				<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-balance lg:leading-tight">
+				<h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-balance lg:leading-tight">
 					Answer a few quick questions to help us understand your preferences better.
 				</h1>
 				<button
 					onclick={startForm}
-					class="cta px-8 py-4 rounded-full text-lg font-semibold shadow-lg"
+					class="cta px-6 py-3 rounded-full text-base font-semibold shadow-md"
 					style="background-color: white; color: var(--secondary-color);"
 				>
 					Start 'em
@@ -403,7 +403,7 @@
 									placeholder="Enter 10-digit mobile number"
 									maxlength="10"
 									pattern="[0-9]{10}"
-									class="w-full px-6 py-4 text-lg rounded-2xl border-2 transition-colors duration-200 focus:outline-none text-center font-semibold tracking-wide"
+									class="w-full px-5 py-3 text-base rounded-2xl border-2 transition-colors duration-200 focus:outline-none text-center font-semibold tracking-wide"
 									style="border-color: {formData.mobileNumber ? 'var(--secondary-color)' : '#e5e7eb'}; color: var(--secondary-color);"
 									oninput={(e) => {
 										// Only allow digits
@@ -460,7 +460,7 @@
 								alt="" 
 								width="64"
 								height="64"
-								class="w-12 h-12 transform rotate-180"
+								class="w-10 h-10 transform rotate-180"
 							/>
 						</button>
 
@@ -477,7 +477,7 @@
 									alt="" 
 									width="64"
 									height="64"
-									class="w-12 h-12"
+									class="w-10 h-10"
 								/>
 							</button>
 						{:else}
@@ -485,7 +485,7 @@
 								type="button"
 								onclick={handleSubmit}
 								disabled={submitting}
-								class="cta py-3 px-8 rounded-full text-white font-semibold text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+								class="cta px-6 py-3 rounded-full text-white font-semibold text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
 								style="background-color: var(--secondary-color);"
 							>
 								{#if submitting}
@@ -508,12 +508,12 @@
 		<!-- Outro Screen -->
 		<section class="flex items-center justify-center px-6 py-20" in:fade={{ duration: 400, delay: 350 }}>
 			<div class="text-center space-y-8 max-w-2xl">
-				<h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-white text-balance lg:leading-tight">
+				<h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white text-balance lg:leading-tight">
 					Now chat with our AI for a few minutes—it'll learn your interests and vibe to find your most compatible prom match!
 				</h1>
 				<button
 					onclick={beginChat}
-					class="cta px-8 py-4 rounded-full text-lg font-semibold shadow-lg"
+					class="cta px-6 py-3 rounded-full text-base font-semibold shadow-md"
 					style="background-color: white; color: var(--secondary-color);"
 				>
 					Begin!
