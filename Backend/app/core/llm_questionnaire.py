@@ -12,16 +12,16 @@ logger = logging.getLogger(__name__)
 
 # (topic, base question) per slot. The base question doubles as the fallback when the LLM fails.
 QUESTION_TOPICS = [
-    ("signature quirk", "What's the most 'you' thing you've ever done?"),
-    ("how friends see them", "If your friends had to describe you in three words, what would they say?"),
-    ("little joys", "What's a small thing that instantly makes your day better?"),
-    ("humour and social ease", "What's your go-to move when a conversation gets awkward?"),
-    ("adventurousness", "What's something on your bucket list you'd actually do this year?"),
-    ("ideal free day", "What's your ideal way to spend a free Saturday?"),
-    ("social energy", "At a party, where would we find you: dance floor, snack table, or deep in conversation?"),
-    ("music taste", "What song would you request at prom, and why?"),
-    ("current obsession", "What's your current obsession: a show, game, food, anything?"),
-    ("hobby or skill", "What's a hobby or skill you'd love to show off to your date?"),
+    ("first impression", "What's something about you that people usually notice first?"),
+    ("how friends see them", "How would your friends describe you in three words?"),
+    ("little joys", "What's a small thing that makes your day better?"),
+    ("meeting new people", "How do you usually break the ice when you meet someone new?"),
+    ("trying new things", "What's something you'd love to try this year?"),
+    ("ideal free day", "How do you like to spend a free Saturday?"),
+    ("social energy", "At a party, are you usually on the dance floor, chatting with friends, or somewhere quieter?"),
+    ("music taste", "What's a song you'd love to hear at prom, and why?"),
+    ("current favourites", "What show, movie or game are you into right now?"),
+    ("hobby or skill", "What's a hobby or skill you're proud of?"),
 ]
 
 
@@ -134,33 +134,25 @@ def generate_next_question(chat_history: List[Dict[str, str]], user_email: str =
     category = "personality" if current_count < 5 else "social_energy"
     topic, base_question = QUESTION_TOPICS[current_count]
 
-    # Build conversation context for LLM
-    conversation_context = ""
-    if chat_history:
-        conversation_context = "Previous conversation:\n"
-        for i, entry in enumerate(chat_history, 1):
-            conversation_context += f"Q{i}: {entry.get('q', '')}\nA{i}: {entry.get('a', '')}\n\n"
-
-    system_prompt = """You are the fun, slightly cheeky host of a prom-date matchmaking quiz for high school/college students. You ask ONE light, playful question at a time.
+    system_prompt = """You write questions for a friendly prom-date matching form for high school/college students. You ask ONE simple question at a time.
 
         Every user gets the SAME topic for each question number, so answers can be compared fairly for matching.
 
         CRITICAL RULES:
         - Return ONLY the question - NO introductions like "Sure, here's", "Here is", "Great answer!", etc.
-        - The question MUST be about the given topic and ask the same thing as the base question - you may only change the wording
-        - Only every 3rd question or so, add a small playful nod to an earlier answer at the START (e.g. "Okay, pizza-dare legend...") - most questions should have no nod, and never reuse a nod already used in the conversation
-        - NEVER suggest example answers drawn from their earlier answers (no "like a surprise pizza slice") - it steers what they write
-        - It's for finding a prom date, so keep it fun and low-stakes - never deep, heavy or interview-like
-        - Keep it SHORT (under 25 words), casual, like a friend asking at a party
+        - The question MUST ask the same thing as the base question - only lightly vary the wording, or keep it as is
+        - Tone: warm, polite and simple, like a friendly classmate or event organiser - subtle, not over the top
+        - No slang, nicknames, jokes about the person, flirting or exaggerated words (avoid "quirky", "wild", "crazy", "weird", "screams", "mischief", "cringe", "chaos", "legend")
+        - Never refer to their earlier answers
+        - Keep it SHORT (under 20 words)
         - Ask for an answer in words (no "answer in emojis" or yes/no questions)
-        - Keep content appropriate for ages 16+ (PG-16) - nothing sexual or controversial"""
+        - Keep content appropriate for ages 16+ - nothing sexual, romantic-pressure, personal or controversial"""
 
     user_prompt = f"""Question #{current_count + 1} of 10.
 Topic: {topic}
 Base question: {base_question}
 
-{conversation_context}
-Rephrase the base question in a fun way for this person. Return ONLY the question text."""
+Return ONLY the question text."""
 
     try:
         # Call OpenAI API
@@ -171,7 +163,7 @@ Rephrase the base question in a fun way for this person. Return ONLY the questio
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.8,
+                temperature=0.4,
                 max_tokens=150
             )
 
