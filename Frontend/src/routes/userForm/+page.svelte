@@ -348,11 +348,11 @@
 					{#if currentStep === 2}
 						<div class="space-y-6 flex-1 flex flex-col justify-center">
 							<h2 class="text-xl sm:text-2xl font-bold text-center text-balance" style="color: var(--secondary-color);">
-								Would you prefer to be matched with someone older or younger than you?
+								Would you prefer to be matched with someone younger or older than you (or the same age)?
 							</h2>
 							<div class="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-md mx-auto">
-								{@render optionCard(formData.agePreference === 'younger', () => formData.agePreference = 'younger', ICONS.younger, 'Younger')}
-								{@render optionCard(formData.agePreference === 'older', () => formData.agePreference = 'older', ICONS.older, 'Older')}
+								{@render optionCard(formData.agePreference === 'younger', () => formData.agePreference = 'younger', ICONS.younger, 'Younger & Same')}
+								{@render optionCard(formData.agePreference === 'older', () => formData.agePreference = 'older', ICONS.older, 'Older & Same')}
 								{@render optionCard(formData.agePreference === 'no-preference', () => formData.agePreference = 'no-preference', ICONS['no-preference'], 'No Preference')}
 							</div>
 						</div>
