@@ -4,6 +4,7 @@
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
+	import { clearSavedChats } from '$lib/chatStorage';
 	import { configStore } from '$lib/stores/config';
 	import { fadeIn } from '$lib/actions/fadeIn';
 	import FloatingHearts from '$lib/components/FloatingHearts.svelte';
@@ -51,13 +52,7 @@
 	async function signInWithGoogle() {
 		loading = true;
 		// Drop saved chat progress left over from a previous user on this device.
-		try {
-			Object.keys(localStorage)
-				.filter((key) => key.startsWith('chat_'))
-				.forEach((key) => localStorage.removeItem(key));
-		} catch {
-			// Storage can be blocked (private mode); nothing to clear then.
-		}
+		clearSavedChats();
 		try {
 			// Call backend to get Google OAuth URL
 			const data = await api.auth.googleLogin();

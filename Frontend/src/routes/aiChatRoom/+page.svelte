@@ -6,6 +6,7 @@
 	import { get } from 'svelte/store';
 	import { authStore } from '$lib/stores/auth';
 	import { api } from '$lib/api';
+	import { chatStorageKey, clearSavedChats } from '$lib/chatStorage';
 	import SignOutButton from '$lib/components/SignOutButton.svelte';
 	import LoadingScreen from '$lib/components/LoadingScreen.svelte';
 
@@ -34,9 +35,10 @@
 
 	// Load chat from localStorage
 	function loadChatFromStorage() {
-		if (typeof window === 'undefined') return;
-		
-		const savedChat = localStorage.getItem(`chat_${userEmail}`);
+		if (typeof window === 'undefined' || !userEmail) return;
+
+		clearSavedChats({ onlyStale: true });
+		const savedChat = localStorage.getItem(chatStorageKey(userEmail));
 		if (savedChat) {
 			try {
 				const parsed = JSON.parse(savedChat);
@@ -64,7 +66,7 @@
 			questionNumber,
 			isComplete
 		};
-		localStorage.setItem(`chat_${userEmail}`, JSON.stringify(chatData));
+		localStorage.setItem(chatStorageKey(userEmail), JSON.stringify(chatData));
 	}
 
 	// Auto-save when chat data changes
@@ -107,7 +109,7 @@
 		
 		// Clear localStorage
 		if (typeof window !== 'undefined' && userEmail) {
-			localStorage.removeItem(`chat_${userEmail}`);
+			localStorage.removeItem(chatStorageKey(userEmail));
 		}
 		
 		// Reset all state
