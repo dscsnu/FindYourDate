@@ -50,6 +50,13 @@
 
 	async function signInWithGoogle() {
 		loading = true;
+		// Drop anything left over from a previous user on this device.
+		try {
+			localStorage.clear();
+			sessionStorage.clear();
+		} catch {
+			// Storage can be blocked (private mode); nothing to clear then.
+		}
 		try {
 			// Call backend to get Google OAuth URL
 			const data = await api.auth.googleLogin();
