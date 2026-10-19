@@ -69,7 +69,7 @@ def _clear_session_cookies(response: Response) -> None:
 
 
 @router.get("/google/login")
-def google_login(response: Response, redirect_to: Optional[str] = None):
+def google_login(redirect_to: Optional[str] = None):
     """
     Initiates Google OAuth flow.
     Returns the OAuth URL that the frontend should redirect to.
@@ -87,13 +87,11 @@ def google_login(response: Response, redirect_to: Optional[str] = None):
             # Hints Google's account chooser; the real check is server side.
             options["query_params"] = {"hd": ALLOWED_EMAIL_DOMAINS[0]}
 
-        oauth = supabase.auth.sign_in_with_oauth(
+        response = supabase.auth.sign_in_with_oauth(
             {"provider": "google", "options": options}
         )
 
-        # Start every sign-in clean, so a previous user's session can't leak through.
-        _clear_session_cookies(response)
-        return {"url": oauth.url}
+        return {"url": response.url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to generate auth URL: {str(e)}")
 

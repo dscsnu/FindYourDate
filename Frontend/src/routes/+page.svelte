@@ -50,10 +50,11 @@
 
 	async function signInWithGoogle() {
 		loading = true;
-		// Drop anything left over from a previous user on this device.
+		// Drop saved chat progress left over from a previous user on this device.
 		try {
-			localStorage.clear();
-			sessionStorage.clear();
+			Object.keys(localStorage)
+				.filter((key) => key.startsWith('chat_'))
+				.forEach((key) => localStorage.removeItem(key));
 		} catch {
 			// Storage can be blocked (private mode); nothing to clear then.
 		}
