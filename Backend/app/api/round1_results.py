@@ -19,8 +19,6 @@ router = APIRouter()
 
 # Configuration - set these via environment variables or config
 ROUND1_RESULTS_PUBLISHED = os.getenv("ROUND1_RESULTS_PUBLISHED", "false").lower() == "true"
-# Comma-separated emails that can see their result before it is published (for testing).
-RESULTS_PREVIEW_EMAILS = {e.strip().lower() for e in os.getenv("RESULTS_PREVIEW_EMAILS", "").split(",") if e.strip()}
 MATCHES_JSON_PATH = os.getenv("MATCHES_JSON_PATH", "matches_20251029_043722.json")  # Default to latest
 
 class MatchResult(BaseModel):
@@ -115,7 +113,7 @@ def check_round1_result(
         )
 
     # Check if results are published
-    if not ROUND1_RESULTS_PUBLISHED and email.lower() not in RESULTS_PREVIEW_EMAILS:
+    if not ROUND1_RESULTS_PUBLISHED:
         return Round1ResultResponse(
             status="not_published",
             message="Round 1 results have not been published yet"
