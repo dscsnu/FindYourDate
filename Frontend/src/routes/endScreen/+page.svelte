@@ -99,7 +99,7 @@
       {:else if resultStatus === 'not_published'}
         <div class="emoji" aria-hidden="true">⏳</div>
         <h1>Results aren't out yet</h1>
-        <p class="status-text">Results not published yet. Please check back later (within next 36 hours)</p>
+        <p class="status-text">Results not published yet. They'll be out later today, so check back soon!</p>
       {:else if resultStatus === 'waiting_for_results'}
         <div class="emoji" aria-hidden="true">💌</div>
         <h1>Hang tight!</h1>
