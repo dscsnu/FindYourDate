@@ -91,6 +91,7 @@
       class="w-40 sm:w-48 lg:w-72 h-auto drop-shadow-lg shrink-0"
     />
 
+    <div class="w-full max-w-md flex flex-col gap-4">
     <section class="card w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 py-8 sm:px-10 sm:py-10 text-center" in:scale={{ start: 0.96, duration: 400, easing: cubicOut }}>
       {#if thankyouMessage}
         <p class="status-text">{thankyouMessage}</p>
@@ -137,6 +138,21 @@
         <p class="status-text">We couldn't load your results right now. Please refresh in a moment.</p>
       {/if}
     </section>
+
+    <!-- Plug for another club event; drop this block once it's over -->
+    <a
+      class="promo"
+      href="https://docs.google.com/forms/d/e/1FAIpQLSc54ADCvEpYBTbCVPSFSlBkKrQbEIrZ0LFvOpfc-wDY8RoAOg/viewform"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="promo-tag">Also from GDG</span>
+      <span class="promo-title">Labyrinth</span>
+      <span class="promo-text">Dare to crack it? Come along and find out.</span>
+      <span class="promo-meta">25th October · 3–4 PM · ₹2K prize pool</span>
+      <span class="promo-cta">Register now →</span>
+    </a>
+    </div>
   </div>
 </main>
 {/if}
@@ -187,6 +203,46 @@
     color: var(--secondary-color);
     opacity: 0.85;
     text-wrap: balance;
+  }
+
+  .promo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 1.5rem;
+    background-color: #fff6cc;
+    border: 2px solid #f2d230;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease;
+  }
+  .promo:hover { transform: translateY(-2px); }
+  .promo-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #b3261e;
+  }
+  .promo-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #c8102e;
+  }
+  .promo-text, .promo-meta { font-size: 0.9rem; color: #3a2f00; }
+  .promo-meta { font-weight: 700; }
+  .promo-cta {
+    margin: 0.5rem auto 0;
+    padding: 0.5rem 1.25rem;
+    border-radius: 9999px;
+    background-color: #c8102e;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
   }
 
   .match-details {
