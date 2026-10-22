@@ -9,10 +9,15 @@
 	let { children } = $props();
 	
 	let formsClosed = $state(false);
-	
+	let registrationsClosed = $state(false);
+
 	configStore.subscribe(config => {
 		formsClosed = config.formsClosed;
+		registrationsClosed = config.registrationsClosed;
 	});
+
+	// Landing page sends anyone who hasn't finished signing up to one of these.
+	let onSignupPage = $derived(['/userForm', '/aiChatRoom'].includes(page.url.pathname));
 </script>
 
 <svelte:head>
@@ -20,7 +25,7 @@
 </svelte:head>
 
 <div class="min-h-screen" style="background-color: var(--background-color);">
-	{#if formsClosed}
+	{#if formsClosed || (registrationsClosed && onSignupPage)}
 		<FormsClosedPage />
 	{:else}
 		<!-- Fade each route in; no outro, so pages never overlap mid-navigation -->

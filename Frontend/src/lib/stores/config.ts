@@ -2,12 +2,14 @@ import { writable } from 'svelte/store';
 
 interface AppConfig {
 	formsClosed: boolean;
+	registrationsClosed: boolean;
 	round1ResultPublished: boolean;
 }
 
 function createConfigStore() {
 	const { subscribe, set, update } = writable<AppConfig>({
 		formsClosed: false, // Set to true to show the forms closed page
+		registrationsClosed: true, // Block the form and chat; people who finished still reach their results
 		round1ResultPublished: false // Set to true to show Round 1 results
 	});
 

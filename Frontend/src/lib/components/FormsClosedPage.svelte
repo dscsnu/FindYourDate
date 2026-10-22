@@ -1,7 +1,10 @@
 <script lang="ts">
 	import FloatingHearts from './FloatingHearts.svelte';
 	import { fadeIn } from '$lib/actions/fadeIn';
+	import SignOutButton from './SignOutButton.svelte';
 </script>
+
+<div class="absolute top-4 right-4 z-50"><SignOutButton /></div>
 
 <div class="flex items-center justify-center min-h-screen px-4 py-10">
 	<FloatingHearts />
@@ -30,17 +33,16 @@
 				
 				<!-- Main heading -->
 				<h1 class="text-2xl md:text-3xl font-bold" style="color: var(--secondary-color);">
-					Forms Are Now Closed!
+					Registrations Are Closed
 				</h1>
 				
 				<!-- Message -->
 				<p class="text-lg md:text-xl font-semibold max-w-xl" style="color: var(--primary-color);">
-					Registration has ended.
+					Sorry, sign-ups for this round have ended.
 				</p>
-				
+
 				<p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color);">
-					We're matching everyone who registered with their perfect prom date. 
-					Results will be announced very soon!
+					We're now matching everyone who registered. Keep an eye out for the next round!
 				</p>
 			</div>
 			

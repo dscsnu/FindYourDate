@@ -98,8 +98,8 @@
         <p class="status-text">We might have a Round 2! You’ll be automatically enrolled.</p>
       {:else if resultStatus === 'not_published'}
         <div class="emoji" aria-hidden="true">⏳</div>
-        <h1>Results aren't out yet</h1>
-        <p class="status-text">Results not published yet. They'll be out later today, so check back soon!</p>
+        <h1>Results coming soon</h1>
+        <p class="status-text">You're in! We're finding your match, so check back soon.</p>
       {:else if resultStatus === 'waiting_for_results'}
         <div class="emoji" aria-hidden="true">💌</div>
         <h1>Hang tight!</h1>
