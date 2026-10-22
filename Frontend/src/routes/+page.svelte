@@ -19,8 +19,8 @@
 			// Identity comes from the session cookie, not a query param.
 			const data = await api.status.userStatus();
 
-			// If Round 1 results are published, always take to endScreen
-			if(round1ResultPublished){
+			// Once sign-ups close or results are out, everyone goes to the results page
+			if (round1ResultPublished || get(configStore).registrationsClosed) {
 				if (data.user_id) {
 					sessionStorage.setItem('user_id', data.user_id);
 				}

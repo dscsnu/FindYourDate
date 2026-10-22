@@ -102,6 +102,18 @@ def check_round1_result(
     """
     email = caller.email
 
+    # Only people who finished the chat (or already have a match row) took part.
+    user = db.query(User).filter(User.email == email).first()
+    took_part = user is not None and (
+        db.query(MatchHistory).filter(MatchHistory.user_id == user.id).first() is not None
+        or get_embedding(email) is not None
+    )
+    if not took_part:
+        return Round1ResultResponse(
+            status="not_registered",
+            message="Registrations are closed."
+        )
+
     # Check if results are published
     if not ROUND1_RESULTS_PUBLISHED and email.lower() not in RESULTS_PREVIEW_EMAILS:
         return Round1ResultResponse(

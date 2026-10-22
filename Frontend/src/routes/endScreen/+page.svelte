@@ -3,6 +3,7 @@
   import { get } from 'svelte/store';
   import { goto } from '$app/navigation';
   import { authStore } from '$lib/stores/auth';
+  import { configStore } from '$lib/stores/config';
   import { api } from '$lib/api';
   import { fade, scale } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
@@ -31,7 +32,7 @@
     try {
       const res = await api.round1.checkResult();
       resultStatus = res.status;
-      if (resultStatus === 'not_registered') {
+      if (resultStatus === 'not_registered' && !get(configStore).registrationsClosed) {
         goto('/userForm');
         return;
       }
@@ -106,7 +107,9 @@
         <h1>Hang tight!</h1>
         <p class="status-text">Waiting for Round 2 results...</p>
       {:else if resultStatus === 'not_registered'}
-        <p class="status-text">Please proceed with your round 2 registration.</p>
+        <div class="emoji" aria-hidden="true">💕</div>
+        <h1>Registrations are closed</h1>
+        <p class="status-text">Sorry, sign-ups have ended and you didn't finish registering in time. Thanks for your interest!</p>
       {:else if resultStatus === 'no_match'}
         <div class="emoji" aria-hidden="true">💞</div>
         <h1>No match this time</h1>
