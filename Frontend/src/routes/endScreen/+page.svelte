@@ -70,6 +70,10 @@
   }
 </script>
 
+<svelte:head>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+</svelte:head>
+
 <svelte:window onkeydown={(e) => { if (showModal && e.key === 'Escape') closeModal(); }} />
 
 {#if loading}
@@ -127,7 +131,7 @@
             <a href="mailto:{matchedUserEmail}" class="match-contact">{matchedUserEmail}</a>
           {/if}
           {#if matchedUserPhoneNumber}
-            <a href="tel:{matchedUserPhoneNumber}" class="match-contact">{matchedUserPhoneNumber}</a>
+            <a href="tel:{matchedUserPhoneNumber}" class="match-contact match-phone">{matchedUserPhoneNumber}</a>
           {/if}
         </div>
 
@@ -152,8 +156,8 @@
       <span class="promo-tag">Also from GDG</span>
       <span class="promo-title">Labyrinth</span>
       <span class="promo-text">Dare to crack it? Come along and find out.</span>
-      <span class="promo-meta">25th October · 3–4 PM · ₹2K prize pool</span>
-      <span class="promo-cta">Register now →</span>
+      <span class="promo-meta">25 OCT · 3–4 PM<br />PRIZE POOL ₹2K</span>
+      <span class="promo-cta">Register now</span>
     </a>
     </div>
   </div>
@@ -208,45 +212,60 @@
     text-wrap: balance;
   }
 
+  /* Labyrinth plug: 8-bit arcade look, square corners and stepped pixel shadows */
   .promo {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 1.25rem 1.5rem;
-    border-radius: 1.5rem;
-    background-color: #fff6cc;
-    border: 2px solid #f2d230;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.25rem 1rem 1.4rem;
+    background-color: #1b1240;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 8px 8px;
+    border: 4px solid #00e5ff;
+    box-shadow: 6px 6px 0 #ff3e9a, 12px 12px 0 rgba(0, 0, 0, 0.25);
     text-align: center;
     text-decoration: none;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-    transition: transform 0.2s ease;
+    image-rendering: pixelated;
+    transition: transform 0.1s steps(2);
   }
-  .promo:hover { transform: translateY(-2px); }
+  .promo:hover { transform: translate(-2px, -2px); }
+  .promo:active { transform: translate(3px, 3px); box-shadow: 3px 3px 0 #ff3e9a; }
+  .promo-tag, .promo-title, .promo-meta, .promo-cta {
+    font-family: 'Press Start 2P', monospace;
+  }
   .promo-tag {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #b3261e;
+    font-size: 0.55rem;
+    color: #7dffb0;
+    letter-spacing: 0.1em;
   }
   .promo-title {
-    font-size: 1.5rem;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #c8102e;
+    font-size: 1.35rem;
+    line-height: 1.3;
+    color: #ffd23f;
+    text-shadow: 3px 3px 0 #ff3e9a;
   }
-  .promo-text, .promo-meta { font-size: 0.9rem; color: #3a2f00; }
-  .promo-meta { font-weight: 700; }
-  .promo-cta {
-    margin: 0.5rem auto 0;
-    padding: 0.5rem 1.25rem;
-    border-radius: 9999px;
-    background-color: #c8102e;
-    color: white;
-    font-weight: 700;
+  .promo-text {
     font-size: 0.9rem;
+    font-weight: 600;
+    color: #e8e4ff;
   }
+  .promo-meta {
+    font-size: 0.55rem;
+    line-height: 1.8;
+    color: #00e5ff;
+  }
+  .promo-cta {
+    margin-top: 0.4rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.65rem;
+    background-color: #ff3e9a;
+    color: #fff;
+    box-shadow: 4px 4px 0 #ffd23f;
+  }
+  .promo-cta::after { content: ' ▶'; }
 
   .match-details {
     margin-top: 1.25rem;
@@ -270,6 +289,12 @@
     color: var(--secondary-color);
     overflow-wrap: anywhere;
     text-decoration: none;
+  }
+
+  .match-phone {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
   }
 
   .match-contact:hover {
