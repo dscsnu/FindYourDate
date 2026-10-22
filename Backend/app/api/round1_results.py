@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.auth import AuthUser, get_current_user
@@ -23,7 +24,7 @@ MATCHES_JSON_PATH = os.getenv("MATCHES_JSON_PATH", "matches_20251029_043722.json
 class MatchResult(BaseModel):
     name: str
     email: str
-    phone: str
+    phone: Optional[str] = None
 
 class Round1ResultResponse(BaseModel):
     status: str  # "not_registered", "match_found", "no_match", "not_published"
@@ -148,6 +149,15 @@ def check_round1_result(
     if match_history and match_history.status:
         user_match_status = match_history.status.value
     
+    # Once either side declines, stop handing out the partner's phone number.
+    declined = db.query(MatchHistory).filter(
+        or_(MatchHistory.user_id == user.id, MatchHistory.matched_user_id == user.id),
+        MatchHistory.status == MatchStatus.REJECTED,
+    ).first()
+    if match and declined:
+        match["phone"] = None
+        user_match_status = "rejected" if declined.user_id == user.id else "partner_declined"
+
     if match:
         return Round1ResultResponse(
             status="match_found",

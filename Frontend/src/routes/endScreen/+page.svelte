@@ -110,9 +110,13 @@
         <div class="emoji" aria-hidden="true">💞</div>
         <h1>No match this time</h1>
         <p class="status-text">Sorry, we couldn't find you a match this time. Thanks for taking part!</p>
+      {:else if resultStatus === 'match_found' && matchStatus === 'partner_declined'}
+        <div class="emoji" aria-hidden="true">🌷</div>
+        <h1>Your match can't make it</h1>
+        <p class="status-text">Your match won't be able to join you this time. It's nothing to do with you, and we're sorry it didn't work out. Thanks so much for being part of FindYourDate!</p>
       {:else if resultStatus === 'match_found'}
         <div class="emoji" aria-hidden="true">💘</div>
-        <h1>We found your match!</h1>
+        <h1>{matchStatus === 'rejected' ? 'Match declined' : 'We found your match!'}</h1>
         <div class="match-details">
           <p class="match-name">{matchedUserName}</p>
           {#if matchedUserEmail}
@@ -231,7 +235,7 @@
   }
 
   .btn-primary {
-    background-color: var(--primary-color);
+    background-color: var(--secondary-color);
     color: white;
   }
 
