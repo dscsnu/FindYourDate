@@ -42,7 +42,7 @@
 				</p>
 
 				<p class="text-base md:text-lg max-w-xl" style="color: var(--secondary-color);">
-					We're now matching everyone who registered. Keep an eye out for the next round!
+					We're now matching everyone who registered. Thanks for your interest!
 				</p>
 			</div>
 			

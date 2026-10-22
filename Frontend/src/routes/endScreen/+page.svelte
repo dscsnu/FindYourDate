@@ -109,7 +109,7 @@
       {:else if resultStatus === 'no_match'}
         <div class="emoji" aria-hidden="true">💞</div>
         <h1>No match this time</h1>
-        <p class="status-text">No match found. You’re automatically enrolled in Round 2!</p>
+        <p class="status-text">Sorry, we couldn't find you a match this time. Thanks for taking part!</p>
       {:else if resultStatus === 'match_found'}
         <div class="emoji" aria-hidden="true">💘</div>
         <h1>We found your match!</h1>
@@ -123,7 +123,9 @@
           {/if}
         </div>
 
-        {#if matchStatus !== 'DECLINED'}
+        {#if matchStatus === 'rejected'}
+          <p class="status-text mt-6">You've declined this match.</p>
+        {:else}
           <button class="btn btn-ghost mt-6" onclick={() => showModal = true}>Decline Match</button>
         {/if}
       {:else}
@@ -142,14 +144,14 @@
       class="modal-content"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="round2-title"
+      aria-labelledby="decline-title"
       transition:scale={{ start: 0.94, duration: 250, easing: cubicOut }}
     >
-      <h2 id="round2-title">Would you like to be considered for Round 2?</h2>
-      <p>You can choose to be matched with someone new in Round 2, or opt out completely.</p>
+      <h2 id="decline-title">Decline this match?</h2>
+      <p>You won't be matched with anyone else.</p>
       <div class="buttons">
-        <button class="btn btn-muted" onclick={() => handleRound2Choice(false)}>No Round 2</button>
-        <button class="btn btn-primary" onclick={() => handleRound2Choice(true)}>Apply Round 2</button>
+        <button class="btn btn-muted" onclick={closeModal}>Cancel</button>
+        <button class="btn btn-primary" onclick={() => handleRound2Choice(false)}>Decline</button>
       </div>
     </div>
   </div>
